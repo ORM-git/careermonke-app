@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, CircleHelp, Lock, Pencil, Plus, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { ChevronDown, CircleHelp, Linkedin, Lock, Pencil, Plus, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { PageHeader, PlanBadge } from "@/components/shell";
-import { Tabs, EmptyState } from "@/components/ui";
+import { Tabs, EmptyState, MonkeAvatar } from "@/components/ui";
+import { toast } from "@/components/toast";
+import { AutofillModal, ChatPanel, Tour, WelcomePopup, useWelcomeFlow } from "@/components/welcome-flow";
+import { KEYS, readPrefs } from "@/mocks/onboarding";
 import { JobCard, JobCardSkeleton } from "@/components/job-card";
 import { useApp, type AppStatus } from "@/components/app-state";
 import { jobs } from "@/mocks/jobs";
@@ -24,22 +27,53 @@ function SelectChip({ label, options, value, onChange }: { label: string; option
   );
 }
 
-function RightRail() {
+function RightRail({ onAutofill }: { onAutofill: () => void }) {
+  const [filter, setFilter] = useState("Business Analyst, India");
+  const [linkedin, setLinkedin] = useState(false);
+  const [vote, setVote] = useState(false);
+  useEffect(() => {
+    const p = readPrefs();
+    if (p?.jobFunction) setFilter(`${p.jobFunction}, ${p.location === "United States" ? "US" : p.location}`);
+    setLinkedin(!localStorage.getItem(KEYS.linkedin));
+  }, []);
+  const answer = (msg: string) => { setVote(true); toast(msg); };
   return (
     <aside className="space-y-5 lg:sticky lg:top-20">
       <PlanBadge />
+      {linkedin && (
+        <p className="flex items-center gap-2 rounded-lg bg-neutral-100 px-3 py-2 text-[13px]">
+          <Linkedin className="h-4 w-4 shrink-0 rounded-sm bg-ink p-0.5 text-white" />
+          <a href="/profile" className="flex-1 truncate hover:underline">Add LinkedIn for smarter job matches</a>
+          <button aria-label="Dismiss" onClick={() => { localStorage.setItem(KEYS.linkedin, "1"); setLinkedin(false); }}><X className="h-4 w-4 text-neutral-500" /></button>
+        </p>
+      )}
       <div className="border-t border-line pt-4">
         <div className="flex items-center justify-between"><p className="font-semibold">Your Saved Filters</p><button aria-label="Add saved filter"><Plus className="h-5 w-5 rounded-full bg-ink p-0.5 text-white" /></button></div>
-        <p className="mt-3 flex items-center justify-between border-l-2 border-ink pl-3 text-sm">Business Analyst, India <Pencil className="h-4 w-4 text-neutral-500" /></p>
+        <p className="mt-3 flex items-center justify-between border-l-2 border-ink pl-3 text-sm">{filter} <Pencil className="h-4 w-4 text-neutral-500" /></p>
       </div>
       <div className="rounded-2xl border-2 border-blue-200 bg-accent-tint p-1">
-        <p className="flex items-center justify-center gap-2 py-2 text-sm font-semibold"><Sparkles className="h-4 w-4" />Complete to Win 1:1 Coaching</p>
-        <div className="space-y-3 rounded-xl bg-white p-3 text-sm">
-          <div className="flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-neutral-100"><div className="h-2 w-1/2 rounded-full bg-accent" /></div><b className="text-lg">50%</b></div>
-          <p className="flex items-center gap-2"><span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] text-white">✓</span>1. Customize Your Resume</p>
-          <p className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border border-line" />2. Enable Autofill Extension</p>
+        <p className="flex items-center justify-center gap-2 py-2 text-sm font-semibold"><Sparkles className="h-4 w-4" />Complete to Win 1v1 Private Coaching</p>
+        <div className="space-y-2 rounded-xl bg-white p-3 text-sm">
+          <div className="flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-neutral-100" /><b className="text-lg">0%</b></div>
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center gap-2"><span className="h-4 w-4 rounded-full border border-line" /><span className="flex-1">1. Customize Your Resume</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
+            <p className="ml-6 mt-1 text-xs text-neutral-500">Open any job and use &quot;Customize Your Resume&quot; once. <a href="/jobs/1" className="text-accent">Try it</a></p>
+          </details>
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center gap-2"><span className="h-4 w-4 rounded-full border border-line" /><span className="flex-1">2. Enable Autofill Extension</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
+            <p className="ml-6 mt-1 text-xs text-neutral-500">Fill applications in one click. <button onClick={onAutofill} className="text-accent">Enable</button></p>
+          </details>
         </div>
       </div>
+      {!vote && (
+        <div className="card p-4">
+          <p className="flex items-center gap-2 text-sm font-medium"><MonkeAvatar size={28} />Do you like the job matches so far?</p>
+          <div className="mt-3 flex gap-2">
+            <button onClick={() => answer("Thanks! We'll keep finding jobs like these.")} className="pill-accent py-1.5">Yes</button>
+            <button onClick={() => answer("Got it. We'll tune your matches.")} className="pill-ghost py-1.5">No, not a good fit</button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
@@ -54,6 +88,7 @@ export default function JobsPage() {
   const [level, setLevel] = useState("");
   const [posted, setPosted] = useState("");
   const [url, setUrl] = useState("");
+  const flow = useWelcomeFlow();
 
   useEffect(() => { const t = setTimeout(() => setLoading(false), 300); return () => clearTimeout(t); }, []);
 
@@ -77,7 +112,7 @@ export default function JobsPage() {
         <main className="min-w-0 space-y-4">
           {tab === "Recommended" && (
             <>
-              <div className="flex flex-wrap items-center gap-2">
+              <div data-tour="filters" className="flex flex-wrap items-center gap-2">
                 <span className="chip bg-accent-tint/60">India <ChevronDown className="h-3.5 w-3.5" /></span>
                 <span className="chip bg-accent-tint/60">Business Analyst <ChevronDown className="h-3.5 w-3.5" /></span>
                 <SelectChip label="Experience" options={["Entry Level", "Mid Level", "Senior Level"]} value={level} onChange={setLevel} />
@@ -129,8 +164,12 @@ export default function JobsPage() {
             </>
           )}
         </main>
-        <RightRail />
+        <RightRail onAutofill={() => flow.setAutofill(true)} />
       </div>
+      <WelcomePopup open={flow.popup} onConfirm={flow.confirmPopup} />
+      {flow.tour !== null && !loading && <Tour step={flow.tour} onNext={flow.nextTour} onExit={flow.exitTour} onTry={flow.tryIt} />}
+      {flow.chat && <ChatPanel job={shown[0] ?? jobs[0]} onClose={() => flow.setChat(false)} />}
+      <AutofillModal open={flow.autofill} onClose={() => flow.setAutofill(false)} />
     </>
   );
 }

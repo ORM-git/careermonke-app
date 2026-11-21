@@ -18,6 +18,15 @@ export function Logo({ withText = true }: { withText?: boolean }) {
   );
 }
 
+export function MonkeAvatar({ size = 44 }: { size?: number }) {
+  return (
+    <span className="relative inline-flex shrink-0 items-center justify-center rounded-full border-2 border-ink bg-accent-tint" style={{ width: size, height: size }} aria-hidden="true">
+      <span style={{ transform: `scale(${size / 48})` }}><Logo withText={false} /></span>
+      <span className="absolute -right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500" />
+    </span>
+  );
+}
+
 export function CompanyLogo({ initials, color, size = 48 }: { initials: string; color: string; size?: number }) {
   return (
     <span

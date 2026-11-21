@@ -60,13 +60,14 @@ export function JobCard({ job, status }: { job: Job; status?: string }) {
           <button aria-label={isLiked ? "Unlike job" : "Like job"} aria-pressed={isLiked} onClick={() => toggleLike(job.id)} className="rounded-full border border-line p-2 hover:bg-neutral-50">
             <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
           </button>
-          <Link href={`/jobs/${job.id}`} className="pill-ghost hidden sm:inline-flex"><Sparkles className="h-4 w-4" />ASK MONKE</Link>
+          <Link href={`/jobs/${job.id}`} data-tour="ask" className="pill-ghost hidden sm:inline-flex"><Sparkles className="h-4 w-4" />ASK MONKE</Link>
           <button onClick={() => apply(job.id)} className={isApplied ? "pill-ghost" : "pill-accent"}>{isApplied ? "APPLIED" : "APPLY NOW"}</button>
         </div>
       </div>
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
+        data-tour="match"
         aria-label={`${job.match}% match, ${expanded ? "hide" : "show"} breakdown`}
         className="hidden w-40 shrink-0 flex-col items-center justify-center gap-2 bg-gradient-to-b from-neutral-900 to-slate-700 text-white sm:flex"
       >
