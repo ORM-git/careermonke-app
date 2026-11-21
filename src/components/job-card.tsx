@@ -76,7 +76,7 @@ export function JobCard({ job, status, onAsk, extra }: { job: Job; status?: stri
       >
         <MatchRing value={job.match} dark />
         <span className="font-semibold">{matchLabel(job.match)}</span>
-        <span className="w-28 border-t border-white/15 pt-2 text-[11px] text-white/80">{job.mode === "Remote" ? "• Remote friendly" : "✓ Visa support likely"}</span>
+        <span className="w-28 border-t border-white/15 pt-2 text-[11px] text-white/80">{job.h1b ? "✓ H1B sponsor likely" : job.mode === "Remote" ? "• Remote friendly" : "No H1B sponsorship"}</span>
       </button>
     </article>
   );

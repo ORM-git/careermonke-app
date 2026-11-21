@@ -1,5 +1,6 @@
 import { jobs, type Job } from "./jobs";
 import { readPrefs } from "./onboarding";
+import { demoStore } from "@/lib/demo";
 
 export const LEVELS = ["Intern/New Grad", "Entry Level", "Mid Level", "Senior Level", "Lead/Staff", "Director/Executive"];
 export const JOB_TYPES = ["Full-time", "Contract", "Part-time", "Internship"];
@@ -41,8 +42,12 @@ const shortCountry = (c: string) => (c === "United States" ? "US" : c === "Unite
 export function filterFromOnboarding(): Filter {
   const p = readPrefs();
   const fn = p?.jobFunction || "Business Analyst";
-  const country = p?.location && p.location !== "Remote (anywhere)" ? p.location : p?.location ? "" : "India";
-  return { ...blankFilter(), title: [fn, shortCountry(country)].filter(Boolean).join(", "), jobFunctions: [fn], country, jobTypes: p?.jobTypes?.length ? p.jobTypes : ["Full-time"], h1b: !!p?.h1b };
+  const remoteAnywhere = p?.location === "Remote (anywhere)";
+  const country = remoteAnywhere ? "" : p?.location || "India";
+  return {
+    ...blankFilter(), title: [fn, remoteAnywhere ? "Remote" : shortCountry(country)].join(", "), jobFunctions: [fn], country,
+    workModels: remoteAnywhere ? ["Remote"] : [...WORK_MODELS], jobTypes: p?.jobTypes?.length ? p.jobTypes : ["Full-time"], h1b: !!p?.h1b,
+  };
 }
 
 const words = (s: string) => s.toLowerCase().split(/[^a-z0-9+#.]+/).filter(Boolean);
@@ -74,10 +79,17 @@ export function matches(j: Job, f: Filter): boolean {
   if (f.stages.length && !f.stages.includes(j.stage)) return false;
   if (f.excludeStaffing && j.staffing) return false;
   if (f.excludedCompanies.includes(j.company)) return false;
+  if (f.hiddenJobs && !j.hiddenGem) return false;
   return true;
 }
 
 export const countMatches = (f: Filter) => jobs.filter((j) => matches(j, f)).length;
+
+/** When a filter has no exact matches: jobs for the same job function anywhere, else the best-matched jobs. Always shown labelled as related, not exact. */
+export function relatedJobs(f: Filter, n = 3): Job[] {
+  const sameRole = jobs.filter((j) => f.jobFunctions.some((fn) => titleHas(j.title, fn)));
+  return (sameRole.length ? sameRole : jobs).slice().sort((a, b) => b.match - a.match).slice(0, n);
+}
 
 /** Summary chips shown at the top of the All Filters drawer. */
 export function filterChips(f: Filter): string[] {
@@ -87,7 +99,7 @@ export function filterChips(f: Filter): string[] {
     ...f.jobFunctions, ...f.jobTypes, ...f.workModels, ...f.levels, ...(f.country ? [f.country] : []), ...f.locations, ...exp, ...(date ? [date] : []),
     ...(f.salaryOpen ? [] : [`$${f.minSalaryK}K+`]), ...(f.h1b ? ["H1B sponsorship"] : []), ...(f.excludeCitizen ? ["No US-citizen-only"] : []),
     ...(f.excludeClearance ? ["No clearance required"] : []), ...f.industries, ...f.skills, ...(f.role ? [f.role] : []),
-    ...f.companies, ...f.stages, ...(f.excludeStaffing ? ["Exclude staffing agency"] : []),
+    ...f.companies, ...f.stages, ...(f.excludeStaffing ? ["Exclude staffing agency"] : []), ...(f.hiddenJobs ? ["Hidden jobs"] : []),
     ...f.excludedTitles.map((t) => `−${t}`), ...f.excludedIndustries.map((t) => `−${t}`), ...f.excludedSkills.map((t) => `−${t}`), ...f.excludedCompanies.map((t) => `−${t}`),
   ];
 }
@@ -96,8 +108,8 @@ export type SavedFilter = { id: string; filter: Filter };
 const KEY = "cm-saved-filters";
 export const readSaved = (): SavedFilter[] => {
   try {
-    const s = localStorage.getItem(KEY);
+    const s = demoStore.getItem(KEY);
     return s ? JSON.parse(s) : [{ id: "f1", filter: filterFromOnboarding() }];
   } catch { return [{ id: "f1", filter: filterFromOnboarding() }]; }
 };
-export const writeSaved = (list: SavedFilter[]) => localStorage.setItem(KEY, JSON.stringify(list));
+export const writeSaved = (list: SavedFilter[]) => demoStore.setItem(KEY, JSON.stringify(list));

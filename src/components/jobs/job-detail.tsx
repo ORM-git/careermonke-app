@@ -17,6 +17,7 @@ import { CREDITS_TODAY, ResumeCompare } from "./rail";
 import { readProfile, saveProfile } from "@/mocks/profile";
 import type { Job } from "@/mocks/jobs";
 import { user } from "@/mocks/user";
+import { demoStore } from "@/lib/demo";
 
 const COVER_TOUR_KEY = "cm_cover_tour_done";
 const coverTour = [{ anchor: "cover", title: "Stand Out Among Applicants", text: "New! Get a personalised cover letter for every job you apply to." }];
@@ -117,7 +118,7 @@ function CompanySection({ job }: { job: Job }) {
         <div className={box}>
           <div className="flex items-start justify-between gap-3">
             <div><p className="text-xl font-semibold">{job.company}</p>
-              <a href={job.website} target="_blank" rel="noopener noreferrer" aria-label={`${job.company} website`} className="mt-2 inline-flex rounded bg-ink p-1 text-white"><Globe className="h-4 w-4" /></a></div>
+</div>
             <CompanyLogo initials={job.initials} color={job.color} size={56} />
           </div>
           <p className="mt-3 text-[15px]">{job.companyAbout}</p>
@@ -126,7 +127,7 @@ function CompanySection({ job }: { job: Job }) {
           <li className="flex items-center gap-2"><CalendarDays className="h-4 w-4" />Founded in {job.founded}</li>
           <li className="flex items-center gap-2"><MapPin className="h-4 w-4" />{job.hq}</li>
           <li className="flex items-center gap-2"><Users className="h-4 w-4" />{job.size} employees</li>
-          <li className="flex items-center gap-2"><Globe className="h-4 w-4" /><a href={job.website} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">{job.website.replace("https://", "")}</a></li>
+          <li className="flex items-center gap-2"><Globe className="h-4 w-4" /><span className="truncate">{job.website}</span></li>
         </ul>
       </div>
       <p className="pt-2 text-lg font-semibold">Funding</p>
@@ -165,7 +166,7 @@ export function JobDetail({ job }: { job: Job }) {
   const top = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!localStorage.getItem(COVER_TOUR_KEY)) setTour(true);
+    if (!demoStore.getItem(COVER_TOUR_KEY)) setTour(true);
     const onScroll = () => {
       setScrolled(window.scrollY > 180);
       const company = document.getElementById("jd-company")?.getBoundingClientRect().top ?? Infinity;
@@ -174,7 +175,7 @@ export function JobDetail({ job }: { job: Job }) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-  const endTour = () => { localStorage.setItem(COVER_TOUR_KEY, "1"); setTour(false); };
+  const endTour = () => { demoStore.setItem(COVER_TOUR_KEY, "1"); setTour(false); };
   const go = (t: "Overview" | "Company") => {
     setTab(t);
     (t === "Company" ? document.getElementById("jd-company") : top.current)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -200,7 +201,7 @@ export function JobDetail({ job }: { job: Job }) {
             <div className="ml-auto flex items-center gap-1">
               <button aria-label="Not interested" title="Not interested" onClick={() => { hide(job.id); toast("We'll show fewer jobs like this"); router.push("/jobs"); }} className="rounded-full p-2 hover:bg-neutral-100"><Ban className="h-5 w-5" /></button>
               <button aria-label={isLiked ? "Unlike job" : "Like job"} aria-pressed={isLiked} onClick={() => toggleLike(job.id)} className="rounded-full p-2 hover:bg-neutral-100"><Heart className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} /></button>
-              <ApplyButton job={job} />
+              <ApplyButton job={job} guided />
             </div>
           </div>
 
@@ -210,7 +211,7 @@ export function JobDetail({ job }: { job: Job }) {
               <div className="ml-auto hidden gap-4 pb-3 text-xs sm:flex">
                 <button onClick={() => shareJob(job.id)} className="flex items-center gap-1"><Share2 className="h-4 w-4" />Share</button>
                 <button onClick={() => setReport(true)} className="flex items-center gap-1"><Flag className="h-4 w-4" />Report Issue</button>
-                <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1"><FileText className="h-4 w-4" />Original Job Post</a>
+                <span title="Sample job: there is no real posting" className="flex items-center gap-1 text-neutral-400"><FileText className="h-4 w-4" />Sample posting</span>
               </div>
             </div>
 

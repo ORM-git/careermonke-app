@@ -44,6 +44,8 @@ export default function ResumeStepPage() {
         ) : (
           <button onClick={() => input.current?.click()} className="w-full max-w-sm rounded-full border border-line py-2.5 hover:bg-neutral-50">Upload Your Resume</button>
         )}
+        {!file && <button onClick={() => { setErr(""); setFile("Sample resume - Aarav Mehta.pdf"); }} className="-mt-4 text-sm font-semibold text-accent underline">Use a sample resume instead</button>}
+        <p className="-mt-4 text-xs text-neutral-500">Uploads stay in your browser for this demo; nothing is sent anywhere.</p>
         {err && <p role="alert" className="-mt-5 text-sm text-red-500">{err}</p>}
         <p className="text-sm">Files should be in <b>PDF</b> or <b>Word</b> format and must not exceed 10MB in size.</p>
         <p className="max-w-md rounded-lg bg-accent-tint px-4 py-3 text-sm text-neutral-500">

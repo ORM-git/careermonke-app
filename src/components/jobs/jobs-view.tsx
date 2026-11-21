@@ -9,9 +9,10 @@ import { useApp, type AppStatus } from "../app-state";
 import { AutofillModal, ChatPanel, Tour, WelcomePopup, useWelcomeFlow } from "../welcome-flow";
 import { QuickFilters } from "./quick-filters";
 import { FilterEditor } from "./filter-editor";
-import { JobsRail, ResumeCompare, UpgradeModal } from "./rail";
+import { JobsRail, ResumeCompare } from "./rail";
+import { useGuideAction } from "../guide";
 import { jobs, type Job } from "@/mocks/jobs";
-import { matches, readSaved, writeSaved, type Filter, type SavedFilter } from "@/mocks/filters";
+import { blankFilter, matches, readSaved, relatedJobs, writeSaved, type Filter, type SavedFilter } from "@/mocks/filters";
 
 const TABS = ["Recommended", "Liked", "Applied", "External"] as const;
 type Tab = (typeof TABS)[number];
@@ -63,6 +64,22 @@ const Empty = ({ text, onCta }: { text: string; onCta?: () => void }) => (
   <div className="pt-16 text-center"><EmptyState text={text} />{onCta && <button onClick={onCta} className="pill-dark mt-4 px-10">View Recommended Jobs</button>}</div>
 );
 
+/** Honest empty state: no fake exact matches. One-click reset plus clearly labelled related sample jobs. */
+function NoExactMatches({ f, onReset, onEdit, onAsk }: { f: Filter; onReset: () => void; onEdit: () => void; onAsk: (j: Job) => void }) {
+  const related = relatedJobs(f);
+  return (
+    <div className="space-y-4">
+      <div className="card p-6 text-center">
+        <p className="font-semibold">No sample jobs match every filter you set.</p>
+        <p className="mt-1 text-sm text-neutral-600">This demo has a limited set of sample jobs. Reset to keep just your job function, or edit the filters.</p>
+        <div className="mt-4 flex justify-center gap-2"><button onClick={onReset} className="pill-accent">Reset filters</button><button onClick={onEdit} className="pill-ghost">Edit filters</button></div>
+      </div>
+      <p className="text-sm font-semibold text-neutral-600">Related sample jobs <span className="font-normal">(not exact matches for your filters)</span></p>
+      {related.map((j) => <JobCard key={j.id} job={j} onAsk={onAsk} />)}
+    </div>
+  );
+}
+
 export function JobsView() {
   const { liked, applied, external, hidden, addExternal, setStatus } = useApp();
   const [tab, setTab] = useState<Tab>("Recommended");
@@ -78,25 +95,33 @@ export function JobsView() {
   const [appliedSearch, setAppliedSearch] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [urlErr, setUrlErr] = useState("");
-  const [hiddenGate, setHiddenGate] = useState(false);
+  const [activeId, setActiveId] = useState("");
   const [compare, setCompare] = useState<Job | null>(null);
   const [askJob, setAskJob] = useState<Job | null>(null);
   const flow = useWelcomeFlow();
 
   useEffect(() => {
     const u = readUrl(); setTab(u.tab); setSort(u.sort); setQ(u.q);
-    const s = readSaved(); setSaved(s); setDraftFilter(s[0]?.filter ?? null);
+    const s = readSaved(); setSaved(s); setActiveId(s[0]?.id ?? ""); setDraftFilter(s[0]?.filter ?? null);
     setReady(true);
   }, []);
   useEffect(() => { if (ready) writeUrl(tab, sort, q); }, [tab, sort, q, ready]);
 
-  const filter = saved[0]?.filter ?? draftFilter;
+  const active = saved.find((x) => x.id === activeId) ?? saved[0];
+  const filter = active?.filter ?? draftFilter;
   const filterKey = JSON.stringify(filter);
   // Brief skeleton whenever the feed's inputs change, like a real fetch would.
   useEffect(() => { setLoading(true); const t = setTimeout(() => setLoading(false), 300); return () => clearTimeout(t); }, [sort, filterKey]);
 
   const persist = (list: SavedFilter[]) => { setSaved(list); writeSaved(list); };
-  const applyFilter = (f: Filter) => (saved.length ? persist(saved.map((s, i) => (i === 0 ? { ...s, filter: f } : s))) : setDraftFilter(f));
+  const applyFilter = (f: Filter) => (active ? persist(saved.map((s) => (s.id === active.id ? { ...s, filter: f } : s))) : setDraftFilter(f));
+  // Multiple saved filters are a Pro feature, unlocked in this demo (up to 5, as on Pro).
+  const addFilter = () => {
+    if (!filter || saved.length >= 5) return;
+    const id = `f${Date.now()}`;
+    persist([...saved, { id, filter: { ...structuredClone(filter), title: `${filter.title} (copy)` } }]);
+    setActiveId(id); setEditor({ savedId: id });
+  };
   const patch = (p: Partial<Filter>) => filter && applyFilter({ ...filter, ...p });
 
   const feed = useMemo(() => {
@@ -111,6 +136,11 @@ export function JobsView() {
     addExternal(url.trim()); setUrl(""); setUrlErr("");
   };
   const chatJob = askJob ?? feed[0] ?? jobs[0];
+  useGuideAction("filters", () => setEditor({ savedId: active?.id }));
+  useGuideAction("tracker", () => { setTab("Applied"); setStatusTab("Interviewing"); });
+  useGuideAction("resume-compare", () => setCompare(feed[0] ?? jobs[0]));
+  useGuideAction("autofill", () => flow.setAutofill(true));
+  const editing = editor?.savedId ? saved.find((x) => x.id === editor.savedId)?.filter : undefined;
 
   if (!ready || !filter) return null;
   return (
@@ -128,14 +158,14 @@ export function JobsView() {
           {tab === "Recommended" && (
             <>
               <div className="flex flex-col-reverse items-end gap-2 sm:flex-row sm:items-start">
-                <div className="w-full sm:flex-1"><QuickFilters f={filter} apply={patch} onAllFilters={() => setEditor({})} onHidden={() => setHiddenGate(true)} /></div>
+                <div className="w-full sm:flex-1"><QuickFilters f={filter} apply={patch} onAllFilters={() => setEditor({})} onHidden={() => patch({ hiddenJobs: !filter.hiddenJobs })} /></div>
                 <span title="Jobs are matched to your saved filter and profile" className="mt-2 hidden text-neutral-500 sm:block"><CircleHelp className="h-5 w-5" /></span>
                 <SortMenu value={sort} onChange={setSort} />
               </div>
               <p className="sr-only" aria-live="polite">{loading ? "Loading jobs" : `${feed.length} jobs`}</p>
               {loading ? <div data-testid="feed-loading" className="space-y-4">{[0, 1, 2].map((i) => <JobCardSkeleton key={i} />)}</div>
                 : feed.length ? feed.map((j) => <JobCard key={j.id} job={j} onAsk={setAskJob} />)
-                : <div className="pt-10 text-center"><EmptyState text="No jobs match these filters yet. Try widening them." /><button onClick={() => setEditor({})} className="pill-accent mt-4">Edit filters</button></div>}
+                : <NoExactMatches f={filter} onReset={() => applyFilter({ ...blankFilter(), title: filter.title, jobFunctions: filter.jobFunctions })} onEdit={() => setEditor({})} onAsk={setAskJob} />}
             </>
           )}
 
@@ -167,7 +197,7 @@ export function JobsView() {
                 ? appliedHere.map((a) => {
                     const j = jobs.find((x) => x.id === a.id)!;
                     return (
-                      <JobCard key={a.id} job={j} status={`Applied ${a.date}`} onAsk={setAskJob} extra={(
+                      <JobCard key={a.id} job={j} status={a.sample ? `Sample application · ${a.date}` : `Applied ${a.date}`} onAsk={setAskJob} extra={(
                         <label className="flex items-center gap-1 text-xs">Status
                           <select value={a.status} onChange={(e) => setStatus(a.id, e.target.value as AppStatus)} className="rounded-md border border-line px-1.5 py-1">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
                         </label>
@@ -195,21 +225,23 @@ export function JobsView() {
             </>
           )}
         </main>
-        <JobsRail saved={saved} onEdit={(id) => setEditor({ savedId: id })} onAutofill={() => flow.setAutofill(true)} onCustomize={() => setCompare(feed[0] ?? jobs[0])} />
+        <JobsRail saved={saved} activeId={active?.id ?? ""} onSelect={setActiveId} onAdd={addFilter} onEdit={(id) => setEditor({ savedId: id })} onAutofill={() => flow.setAutofill(true)} onCustomize={() => setCompare(feed[0] ?? jobs[0])} />
       </div>
 
       <button onClick={() => setAskJob(chatJob)} aria-label="Ask Monke" className="fixed bottom-20 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-black/5 md:bottom-6"><Sparkles className="h-6 w-6 text-accent" /></button>
 
       {editor && (
-        <FilterEditor initial={filter} editingSaved={!!editor.savedId}
+        <FilterEditor initial={editing ?? filter} editingSaved={!!editor.savedId}
           onClose={() => setEditor(null)}
-          onConfirm={(f) => { applyFilter(f); setEditor(null); }}
-          onDelete={() => { const rest = saved.filter((s) => s.id !== editor.savedId); persist(rest); setDraftFilter(filter); setEditor(null); }} />
+          onConfirm={(f) => {
+            if (editor.savedId) { persist(saved.map((x) => (x.id === editor.savedId ? { ...x, filter: f } : x))); setActiveId(editor.savedId); }
+            else applyFilter(f);
+            setEditor(null);
+          }}
+          onDelete={() => { const rest = saved.filter((x) => x.id !== editor.savedId); persist(rest); setActiveId(rest[0]?.id ?? ""); setDraftFilter(filter); setEditor(null); }} />
       )}
-      <UpgradeModal open={hiddenGate} onClose={() => setHiddenGate(false)} title='Unlock "Hidden Jobs"' cta="Upgrade to Pro"
-        body={<>Fresh, well-matched roles that <b>aren&apos;t on the big job boards</b> yet.</>} />
       {compare && <ResumeCompare job={compare} onClose={() => setCompare(null)} />}
-      <WelcomePopup open={flow.popup} onConfirm={flow.confirmPopup} />
+      {flow.popup && <WelcomePopup open base={filter} onConfirm={(levels, extra) => { applyFilter({ ...filter, levels, jobFunctions: [...new Set([...filter.jobFunctions, ...extra])] }); flow.confirmPopup(); }} />}
       {flow.tour !== null && !loading && <Tour step={flow.tour} onNext={flow.nextTour} onExit={flow.exitTour} onTry={flow.tryIt} />}
       {(flow.chat || askJob) && <ChatPanel key={chatJob.id} job={chatJob} onClose={() => { flow.setChat(false); setAskJob(null); }} />}
       <AutofillModal open={flow.autofill} onClose={() => flow.setAutofill(false)} />

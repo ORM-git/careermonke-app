@@ -5,21 +5,30 @@ import { ArrowUp, ChevronDown, Mic, Sparkles } from "lucide-react";
 import { Logo, Modal, MonkeAvatar } from "./ui";
 import { CheckCard } from "./onboarding-shell";
 import { toast } from "./toast";
-import { additionalFunctions, chatSuggestions, defaultLevels, experienceLevels, KEYS, matchCount, tourSteps } from "@/mocks/onboarding";
+import { additionalFunctions, chatSuggestions, defaultLevels, experienceLevels, KEYS, tourSteps } from "@/mocks/onboarding";
 import type { Job } from "@/mocks/jobs";
 import { readProfile } from "@/mocks/profile";
+import { demoStore } from "@/lib/demo";
+import { countMatches, type Filter } from "@/mocks/filters";
+import { startGuide } from "./guide";
+import { SimulatedApplication } from "./jobs/simulated-application";
+import { AUTOFILL_DEMO_KEY } from "./jobs/rail";
 
 /* ---------- Found-roles popup ---------- */
-export function WelcomePopup({ open, onConfirm }: { open: boolean; onConfirm: () => void }) {
+/** The count comes from the same filter and fixtures as the feed, including the boxes ticked here. */
+export function WelcomePopup({ open, base, onConfirm }: { open: boolean; base: Filter; onConfirm: (levels: string[], extraFunctions: string[]) => void }) {
+  const suggested = additionalFunctions.filter((x) => !base.jobFunctions.includes(x));
   const [levels, setLevels] = useState(defaultLevels);
-  const [fns, setFns] = useState(additionalFunctions);
+  const [fns, setFns] = useState(suggested);
+  const count = countMatches({ ...base, levels, jobFunctions: [...base.jobFunctions, ...fns] });
   const flip = (list: string[], set: (v: string[]) => void, v: string, on: boolean) => set(on ? [...list, v] : list.filter((x) => x !== v));
   return (
-    <Modal open={open} onClose={onConfirm} wide title="We found roles that fit you">
+    <Modal open={open} onClose={() => onConfirm(levels, fns)} wide title="We found roles that fit you">
       <div className="bg-gradient-to-b from-accent-tint to-white px-4 pb-6 pt-8 sm:px-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow"><Logo withText={false} /></span>
-          <h2 className="text-2xl sm:text-[26px]">👏 Welcome! We found <b>{matchCount.toLocaleString("en-US")} roles</b> that fit you best.</h2>
+          <h2 className="text-2xl sm:text-[26px]">{count ? <>👏 Welcome! We found <b>{count} sample {count === 1 ? "role" : "roles"}</b> that fit you best.</> : <>No sample roles match all of these yet. Untick a level to widen it.</>}</h2>
+          <p className="text-xs text-neutral-500">Demo data: counted from this demo&apos;s sample jobs.</p>
         </div>
         <div className="mt-6 space-y-4 rounded-3xl bg-white p-4 shadow-sm">
           <p className="text-center text-[15px]">Take a moment to review, just making sure everything looks right for you.</p>
@@ -37,11 +46,11 @@ export function WelcomePopup({ open, onConfirm }: { open: boolean; onConfirm: ()
           <fieldset className="rounded-xl border border-line p-3">
             <legend className="px-1 font-semibold">Additional Job Functions Matching Your Background</legend>
             <div className="grid gap-1 sm:grid-cols-2">
-              {additionalFunctions.map((f) => <CheckCard key={f} label={f} checked={fns.includes(f)} onChange={(v) => flip(fns, setFns, f, v)} />)}
+              {suggested.map((f) => <CheckCard key={f} label={f} checked={fns.includes(f)} onChange={(v) => flip(fns, setFns, f, v)} />)}
             </div>
           </fieldset>
         </div>
-        <div className="mt-6 flex justify-center"><button onClick={onConfirm} className="pill-dark w-full max-w-xs py-3 text-base">Confirm &amp; See Jobs</button></div>
+        <div className="mt-6 flex justify-center"><button onClick={() => onConfirm(levels, fns)} className="pill-dark w-full max-w-xs py-3 text-base">Confirm &amp; See Jobs</button></div>
       </div>
     </Modal>
   );
@@ -177,7 +186,10 @@ export function ChatPanel({ job, onClose, initialAsk }: { job: Job; onClose: () 
 }
 
 /* ---------- Autofill modal ---------- */
+/** "Enable" opens a sample application that autofills locally. No extension is installed; the checklist ticks only after the fill ran. */
 export function AutofillModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [demo, setDemo] = useState(false);
+  if (demo) return <SimulatedApplication title="Product Manager, Analytics (sample)" onReturn={({ filled }) => { if (filled) demoStore.setItem(AUTOFILL_DEMO_KEY, "1"); setDemo(false); onClose(); }} />;
   return (
     <Modal open={open} onClose={onClose} title="Apply 5x Faster with Autofill">
       <div className="p-6">
@@ -197,7 +209,8 @@ export function AutofillModal({ open, onClose }: { open: boolean; onClose: () =>
         <p className="mt-4 flex flex-wrap items-center justify-between gap-2 text-lg text-neutral-600">
           <span className="font-semibold">workday</span><span>greenhouse</span><span className="font-serif font-bold">Ashby</span><span className="tracking-widest">LEVER</span><span className="font-semibold">icims</span>
         </p>
-        <button onClick={() => { toast("Extension coming soon"); onClose(); }} className="pill-dark mt-4 w-full rounded-lg py-3">Yes, Enable Autofill Now</button>
+        <button onClick={() => setDemo(true)} className="pill-dark mt-4 w-full rounded-lg py-3">Yes, Show Me Autofill</button>
+        <p className="mt-2 text-center text-xs text-neutral-500">Demo: runs on a sample form here. No browser extension is installed.</p>
       </div>
     </Modal>
   );
@@ -211,22 +224,25 @@ export function useWelcomeFlow() {
   const [autofill, setAutofill] = useState(false);
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).has("welcome") && !localStorage.getItem(KEYS.welcome)) setPopup(true);
+    if (new URLSearchParams(location.search).has("welcome") && !demoStore.getItem(KEYS.welcome)) setPopup(true);
   }, []);
 
+  // Visit-scoped: the tour hands over to the guided walkthrough instead of popping more modals on a timer.
   const endTour = () => {
-    localStorage.setItem(KEYS.tour, "1");
+    demoStore.setItem(KEYS.tour, "1");
     setTour(null);
-    if (!localStorage.getItem(KEYS.autofill)) { localStorage.setItem(KEYS.autofill, "1"); setTimeout(() => setAutofill(true), 1200); }
+    startGuide();
   };
 
   return {
     popup, tour, chat, autofill,
     confirmPopup: () => {
-      localStorage.setItem(KEYS.welcome, "1");
+      demoStore.setItem(KEYS.welcome, "1");
       setPopup(false);
-      history.replaceState(null, "", "/jobs");
-      if (!localStorage.getItem(KEYS.tour)) setTour(0);
+      // Keep the deploy base path (e.g. /careermonke-app) and any other query params; only drop welcome.
+      const p = new URLSearchParams(location.search); p.delete("welcome");
+      history.replaceState(null, "", `${location.pathname}${p.size ? `?${p}` : ""}`);
+      if (!demoStore.getItem(KEYS.tour)) setTour(0);
     },
     nextTour: () => setTour((t) => (t === null ? null : t + 1)),
     exitTour: endTour,

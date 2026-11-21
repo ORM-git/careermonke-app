@@ -7,6 +7,7 @@ import { Bell, CreditCard, FileText, LogOut, MessagesSquare, Pencil, User } from
 import { Modal, UpgradePill } from "./ui";
 import { useApp } from "./app-state";
 import { user } from "@/mocks/user";
+import { demoStore } from "@/lib/demo";
 
 const sections = [
   { key: "Login & Security", icon: User },
@@ -42,7 +43,7 @@ export function SettingsModal() {
   const [freq, setFreq] = useState<"Daily" | "Weekly">("Daily");
   const [saved, setSaved] = useState(false);
   const close = () => setSettingsOpen(false);
-  const logout = () => { localStorage.removeItem("cm-session"); close(); router.push("/signin"); };
+  const logout = () => { demoStore.removeItem("cm-session"); close(); router.push("/signin"); };
   const navBtn = "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-left transition-colors";
 
   return (

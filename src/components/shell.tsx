@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bell, Bot, BriefcaseBusiness, ChevronRight, FileText, Gift, HelpCircle, MessagesSquare, Search, Settings, Target, User, Zap } from "lucide-react";
 import { Logo } from "./ui";
 import { useApp } from "./app-state";
+import { RestartDemoButton } from "./demo-gate";
 import { user } from "@/mocks/user";
 
 const nav = [
@@ -44,6 +45,7 @@ export function Sidebar() {
           <button onClick={() => setMessagesOpen(true)} className={`${item} hover:bg-neutral-50`}><Bell className="h-[18px] w-[18px]" />Messages</button>
           <a href="mailto:feedback@careermonke.com" className={`${item} hover:bg-neutral-50`}><HelpCircle className="h-[18px] w-[18px]" />Feedback</a>
           <button onClick={() => setSettingsOpen(true)} className={`${item} hover:bg-neutral-50`}><Settings className="h-[18px] w-[18px]" />Settings</button>
+          <RestartDemoButton className={`${item} text-accent hover:bg-accent-tint`} />
         </div>
       </aside>
       {/* Mobile: bottom tab bar replaces the sidebar under 768px */}

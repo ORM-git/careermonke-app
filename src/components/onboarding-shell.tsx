@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { Check, CircleHelp } from "lucide-react";
 import { MonkeAvatar } from "./ui";
+import { demoStore } from "@/lib/demo";
 
 export function OnboardingShell({ headline, children, footer }: { headline: React.ReactNode; children: React.ReactNode; footer: React.ReactNode }) {
   const router = useRouter();
-  const logout = () => { localStorage.removeItem("cm-session"); router.push("/signin"); };
+  const logout = () => { demoStore.removeItem("cm-session"); router.push("/signin"); };
   return (
     <main className="flex min-h-screen flex-col md:flex-row">
       <section className="flex items-center bg-gradient-to-br from-[#EFF6FF] via-[#DBEAFE] to-[#E0F2FE] px-6 py-10 md:w-1/2 md:px-24">

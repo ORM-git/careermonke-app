@@ -1,3 +1,4 @@
+import { demoStore } from "@/lib/demo";
 export const jobFunctions = [
   "Software Engineer", "Backend Engineer", "Frontend Engineer", "Data Analyst", "Data Scientist", "Business Analyst",
   "Product Manager", "Product Designer", "Marketing Manager", "Sales Executive", "Operations Analyst", "DevOps Engineer",
@@ -50,13 +51,12 @@ export const chatSuggestions = [
   "Show me Connections for potential referral.",
 ];
 
-export const matchCount = 1842;
 
-// localStorage keys. Logout clears only cm-session, so these survive and never replay.
+// Demo-store keys (visit-scoped, see lib/demo.ts).
 export const KEYS = { prefs: "cm-onboarding", welcome: "cm_welcome_done", tour: "cm_tour_done", autofill: "cm_autofill_seen", linkedin: "cm_linkedin_dismissed" };
 
 export type Prefs = { jobFunction: string; jobTypes: string[]; location: string; openToRemote: boolean; h1b: boolean; resume?: string };
 export const readPrefs = (): Prefs | null => {
-  try { return JSON.parse(localStorage.getItem(KEYS.prefs) || "null"); } catch { return null; }
+  try { return JSON.parse(demoStore.getItem(KEYS.prefs) || "null"); } catch { return null; }
 };
-export const savePrefs = (p: Partial<Prefs>) => localStorage.setItem(KEYS.prefs, JSON.stringify({ ...readPrefs(), ...p }));
+export const savePrefs = (p: Partial<Prefs>) => demoStore.setItem(KEYS.prefs, JSON.stringify({ ...readPrefs(), ...p }));

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Eye, EyeOff, X } from "lucide-react";
 import { toast } from "./toast";
+import { startSession } from "@/lib/demo";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PASSWORD_OK = (p: string) => p.length >= 8 && /\d/.test(p) && /[a-z]/i.test(p);
@@ -23,10 +24,11 @@ export function AuthCard({ initial }: { initial: "signin" | "signup" }) {
   const [err, setErr] = useState("");
   const signup = mode === "signup";
 
-  // shortcut: mock session flag in localStorage, swap for Supabase auth when the backend lands
+  // Demo: sign-in and sign-up both run the same onboarding walkthrough (no real account is created).
+  // shortcut: visit-scoped mock session, swap for Supabase auth when the backend lands
   const enter = () => {
-    localStorage.setItem("cm-session", "demo");
-    router.push(signup ? "/onboarding/role" : "/jobs");
+    startSession();
+    router.push("/onboarding/role");
   };
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

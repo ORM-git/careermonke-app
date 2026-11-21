@@ -1,3 +1,4 @@
+import { demoStore } from "@/lib/demo";
 // Curated, original seed content for the Interview demo. Counts are a dated snapshot, shown with their date in the UI.
 export const snapshot = { date: "21 Nov 2026", companies: 48, questions: 6214, last30: 412 };
 
@@ -185,6 +186,6 @@ export const ticker = companies.slice(0, 8).map((c, k) => `${c.name} · ${["Codi
 export type Status = "Not Started" | "In Progress";
 const STATUS_KEY = "cm-practice-status";
 export const readStatus = (): Record<string, Status> => {
-  try { return JSON.parse(localStorage.getItem(STATUS_KEY) || "{}"); } catch { return {}; }
+  try { return JSON.parse(demoStore.getItem(STATUS_KEY) || "{}"); } catch { return {}; }
 };
-export const setStatus = (id: string, s: Status) => localStorage.setItem(STATUS_KEY, JSON.stringify({ ...readStatus(), [id]: s }));
+export const setStatus = (id: string, s: Status) => demoStore.setItem(STATUS_KEY, JSON.stringify({ ...readStatus(), [id]: s }));

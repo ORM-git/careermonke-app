@@ -6,7 +6,7 @@ export type Job = {
   breakdown: { experience: number; skills: number; industry: number };
   reasons: string[]; summary: string; tags: string[]; responsibilities: string[]; requirements: string[]; preferred: string[]; benefits: string[];
   skills: string[]; h1b: boolean; citizenOnly: boolean; clearance: boolean; staffing: boolean; growth: boolean;
-  companyAbout: string; size: string; founded: number; hq: string; website: string; badges: string[]; applyUrl: string;
+  companyAbout: string; size: string; founded: number; hq: string; website: string; badges: string[]; hiddenGem: boolean;
   funding: { stage: string; total: string; investors: string[]; events: { date: string; label: string }[] };
   leaders: { name: string; title: string }[]; news: { source: string; title: string; date: string }[];
 };
@@ -33,6 +33,45 @@ const seeds: Seed[] = [
   { title: "Backend Engineer", company: "Payloop", color: "#DB2777", industry: "Financial Services · Early Stage", tagline: "Payouts infrastructure for marketplaces", location: "Bengaluru, KA", country: "India", mode: "Hybrid", level: "Mid Level", salary: "₹30L – ₹45L/yr", salaryK: 36, posted: "1 day ago", postedHours: 24, match: 69, skills: ["Java", "SQL", "Kafka", "AWS"] },
   { title: "Engineering Manager, Platform", company: "Civic Bank", color: "#1E3A8A", industry: "Financial Services · Public Company", tagline: "Digital banking for everyone", location: "Mumbai, MH", country: "India", mode: "Onsite", level: "Lead/Staff", salary: "₹60L – ₹85L/yr", salaryK: 72, posted: "3 days ago", postedHours: 72, match: 52, skills: ["Java", "Leadership", "AWS"] },
 ];
+
+// Generated samples: every onboarding role has India (senior + mid) and US remote examples,
+// and every listed country has at least one job, so guided choices never land on an empty feed.
+const ROLE_SKILLS: Record<string, string[]> = {
+  "Software Engineer": ["TypeScript", "Node.js", "SQL", "AWS"], "Backend Engineer": ["Java", "SQL", "Kafka", "AWS"],
+  "Frontend Engineer": ["TypeScript", "React", "Figma"], "Data Analyst": ["SQL", "Python", "Power BI"],
+  "Data Scientist": ["Python", "SQL", "Machine learning"], "Business Analyst": ["SQL", "Excel", "Stakeholder management"],
+  "Product Manager": ["Product strategy", "SQL", "Figma"], "Product Designer": ["Figma", "User research", "Prototyping"],
+  "Marketing Manager": ["SEO", "Campaigns", "Analytics"], "Sales Executive": ["CRM", "Negotiation", "Excel"],
+  "Operations Analyst": ["Excel", "Process mapping", "SQL"], "DevOps Engineer": ["Kubernetes", "AWS", "Terraform"],
+};
+const CO: [string, string, string][] = [
+  ["Tidewell", "#0EA5E9", "Software · Growth Stage"], ["Kestrel Labs", "#7C3AED", "Artificial Intelligence (AI) · Early Stage"],
+  ["Harborline", "#0F766E", "Logistics · Late Stage"], ["Monsoon Pay", "#DB2777", "Financial Services · Growth Stage"],
+  ["Bluegrid", "#2563EB", "Information Technology · Public Company"], ["Saffron Retail", "#EA580C", "E-commerce · Late Stage"],
+];
+const COUNTRY_CITY: Record<string, string> = {
+  Australia: "Sydney", Bangladesh: "Dhaka", Brazil: "São Paulo", Canada: "Toronto", China: "Shanghai", France: "Paris", Germany: "Berlin",
+  Indonesia: "Jakarta", Ireland: "Dublin", Japan: "Tokyo", Malaysia: "Kuala Lumpur", Mexico: "Mexico City", Netherlands: "Amsterdam",
+  "New Zealand": "Auckland", Nigeria: "Lagos", Pakistan: "Karachi", Philippines: "Manila", Poland: "Warsaw", Singapore: "Singapore",
+  "South Africa": "Cape Town", Spain: "Madrid", "Sri Lanka": "Colombo", Sweden: "Stockholm", Switzerland: "Zurich",
+  "United Arab Emirates": "Dubai", "United Kingdom": "London", Vietnam: "Ho Chi Minh City",
+};
+export const ROLES = Object.keys(ROLE_SKILLS);
+ROLES.forEach((role, r) => {
+  const pick = (k: number) => CO[(r + k) % CO.length];
+  const tag = (ind: string) => `${ind.split(" · ")[0]} products for fast-growing teams`;
+  const [c1, col1, ind1] = pick(0), [c2, col2, ind2] = pick(1), [c3, col3, ind3] = pick(2);
+  seeds.push(
+    { title: `Senior ${role}`, company: c1, color: col1, industry: ind1, tagline: tag(ind1), location: "Bengaluru, KA", country: "India", mode: "Hybrid", level: "Senior Level", salary: "₹32L – ₹48L/yr", salaryK: 38, posted: `${2 + r} hours ago`, postedHours: 2 + r, match: 86 - (r % 5), skills: ROLE_SKILLS[role] },
+    { title: role, company: c2, color: col2, industry: ind2, tagline: tag(ind2), location: "Pune, MH", country: "India", mode: "Onsite", level: "Mid Level", salary: "₹16L – ₹26L/yr", salaryK: 19, posted: "2 days ago", postedHours: 48, match: 74 - (r % 6), skills: ROLE_SKILLS[role] },
+    { title: `Senior ${role}`, company: c3, color: col3, industry: ind3, tagline: tag(ind3), location: "United States", country: "United States", mode: "Remote", level: "Senior Level", salary: "$150K – $210K/yr", salaryK: 150, posted: "1 day ago", postedHours: 24, match: 80 - (r % 4), skills: ROLE_SKILLS[role] },
+  );
+});
+Object.entries(COUNTRY_CITY).forEach(([country, city], k) => {
+  const role = ROLES[k % ROLES.length];
+  const [co, col, ind] = CO[k % CO.length];
+  seeds.push({ title: role, company: `${co} ${city}`, color: col, industry: ind, tagline: `${ind.split(" · ")[0]} team in ${city}`, location: `${city}, ${country}`, country, mode: "Hybrid", level: "Mid Level", posted: `${k + 1} days ago`, postedHours: 24 * (k + 1), match: 55 + (k % 20), skills: ROLE_SKILLS[role] });
+});
 
 const expFor = (level: string) => ({ "Intern/New Grad": 0, "Entry Level": 1, "Mid Level": 3, "Senior Level": 5, "Lead/Staff": 7, "Director/Executive": 10 } as Record<string, number>)[level] ?? 0;
 
@@ -75,9 +114,9 @@ export const jobs: Job[] = seeds.map((s, i) => {
     size: ["51-200", "201-500", "1,001-5,000", "10,000+"][i % 4],
     founded: 2008 + (i % 12),
     hq: s.location,
-    website: `https://www.${slug}.example`,
+    website: `${slug}.example (sample, not a real site)`,
     badges: [i % 2 ? "Early applicant" : "1 former colleague"],
-    applyUrl: `https://careers.${slug}.example/jobs/${i + 1}`,
+    hiddenGem: i % 5 === 2,
     funding: {
       stage, total: `$${(12 + i * 7.3).toFixed(1)}M`, investors: ["Northgate Capital", "Foundry Partners"],
       events: [{ date: "2025-12-05", label: "Series B · $18M" }, { date: "2023-04-14", label: "Series A · $6M" }],
