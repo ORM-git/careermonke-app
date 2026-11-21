@@ -14,3 +14,6 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({}),
   notFound: () => { throw new Error("notFound"); },
 }));
+
+// jsdom lacks ResizeObserver; the tour uses it to re-measure its anchor.
+globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
