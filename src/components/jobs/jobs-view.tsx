@@ -160,7 +160,7 @@ export function JobsView() {
         </label>
       </PageHeader>
 
-      <div className="grid gap-6 px-4 pb-24 pt-14 md:p-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-24 pt-14 md:p-6 lg:grid-cols-[1fr_320px]">
         <main className="min-w-0 space-y-4">
           {tab === "Recommended" && (
             <>
