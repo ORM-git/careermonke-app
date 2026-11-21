@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-white text-ink antialiased; font-family: var(--font-inter), system-ui, sans-serif; }
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-white; }
+  .pill { @apply inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150; }
+  .pill-accent { @apply pill bg-accent text-white hover:bg-accent-hover; }
+  .pill-dark { @apply pill bg-ink text-white hover:bg-neutral-800; }
+  .pill-ghost { @apply pill border border-line bg-white hover:bg-neutral-50; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full border border-line bg-white px-3 py-1.5 text-[13px] font-medium text-ink transition-colors duration-150 hover:border-neutral-300; }
+  .chip-on { @apply border-accent bg-accent-tint text-accent; }
+  .tag { @apply inline-flex items-center gap-1 rounded-md bg-accent-tint px-2 py-0.5 text-[11px] font-medium text-accent; }
+  .input { @apply w-full rounded-lg border border-line bg-neutral-50 px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:bg-white; }
+  .skel { @apply animate-pulse rounded-lg bg-neutral-100; }
+}
+
+@keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+.animate-pop { animation: pop .18s ease-out; }
+@keyframes blink { 0%, 80%, 100% { opacity: .2 } 40% { opacity: 1 } }
+.dot { animation: blink 1.2s infinite; }
