@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Ban, BriefcaseBusiness, CalendarDays, ChevronRight, Clock, Flag, Heart, House, IndianRupee, Mail, MapPin, Search, Share2, Sparkles, ThumbsUp, X } from "lucide-react";
 import { PageHeader } from "@/components/shell";
@@ -37,8 +37,9 @@ function Typed({ text }: { text: string }) {
   return <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-neutral-800">{text.slice(0, n)}</pre>;
 }
 
-export default function JobDetailPage({ params }: { params: { id: string } }) {
-  const job = getJob(params.id);
+export default function JobDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const job = getJob(id);
   const { liked, toggleLike, apply, applied } = useApp();
   const [tab, setTab] = useState<"Overview" | "Company">("Overview");
   const [tool, setTool] = useState<ToolKey | null>(null);
