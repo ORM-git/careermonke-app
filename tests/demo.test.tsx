@@ -161,6 +161,7 @@ describe("guided steps and safety", () => {
     await act(async () => { vi.advanceTimersByTime(400); });
     vi.useRealTimers();
     await userEvent.click(screen.getAllByRole("button", { name: /APPLY/ })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Apply Without Customizing" }));
     await userEvent.click(screen.getByRole("button", { name: "Back to CareerMonke" }));
     await userEvent.click(screen.getByRole("button", { name: "Yes, I applied!" }));
     const { unmount } = render(<CoachingPage />);

@@ -5,7 +5,7 @@ import { CircleHelp, MoreHorizontal, Plus, Star } from "lucide-react";
 import { PageHeader } from "@/components/shell";
 import { EmptyState } from "@/components/ui";
 import { UploadModal } from "@/components/resume-upload";
-import { ResumeCompare } from "@/components/jobs/rail";
+import { ResumeCompare } from "@/components/jobs/resume-customize";
 import { guideJobId, useGuideAction } from "@/components/guide";
 import { getJob } from "@/mocks/jobs";
 import { resumes as seed, type Resume } from "@/mocks/misc";

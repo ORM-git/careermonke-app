@@ -11,6 +11,8 @@ const job = jobs[8];
 const appState = () => JSON.parse(demoStore.getItem("cm-dummy-state") || "{}");
 
 beforeEach(() => { demoStore.setItem("cm_cover_tour_done", "1"); });
+// This job has a low sample resume score, so Apply first offers the customize demo.
+const clickApply = async () => { await userEvent.click(screen.getByRole("button", { name: /APPLY/ })); await userEvent.click(screen.getByRole("button", { name: "Apply Without Customizing" })); };
 const renderDetail = () => render(<AppStateProvider><JobDetail job={job} /><Toaster /></AppStateProvider>);
 
 describe("Job detail", () => {
@@ -47,7 +49,7 @@ describe("Job detail", () => {
 
   // Returning from the local simulated application always asks once; only Yes records it.
   const applyAndReturn = async () => {
-    await userEvent.click(screen.getByRole("button", { name: /APPLY/ }));
+    await clickApply();
     expect(screen.getByText(/Simulated employer form/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Back to CareerMonke" }));
     return screen.getByRole("dialog", { name: "Did you apply?" });
@@ -72,9 +74,15 @@ describe("Job detail", () => {
     expect(screen.getByRole("button", { name: "APPLIED" })).toBeInTheDocument();
   });
 
+  it("has a Customize Resume action next to Apply that opens the 3-step flow for this job", async () => {
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: "Customize Resume" }));
+    expect(screen.getByRole("dialog", { name: "Generate Your Custom Resume" })).toHaveTextContent(job.title);
+  });
+
   it("the simulated form autofills from the sample profile and only simulates submission", async () => {
     renderDetail();
-    await userEvent.click(screen.getByRole("button", { name: /APPLY/ }));
+    await clickApply();
     await screen.findByText(/Autofill complete/, {}, { timeout: 4000 });
     expect(screen.getByLabelText("Email")).toHaveValue("aarav.demo@careermonke.com");
     await userEvent.click(screen.getByRole("button", { name: "Submit (simulated)" }));

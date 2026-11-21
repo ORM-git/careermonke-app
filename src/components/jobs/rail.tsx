@@ -2,125 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { CircleCheck, CircleX, CircleAlert, ChevronDown, Lightbulb, Linkedin, Pencil, Plus, Sparkles, ThumbsUp, X, Zap } from "lucide-react";
-import { Confirm, Drawer, Modal, MonkeAvatar } from "../ui";
+import { ChevronDown, Lightbulb, Linkedin, Pencil, Plus, X } from "lucide-react";
+import { MonkeAvatar } from "../ui";
 import { PlanBadge } from "../shell";
 import { toast } from "../toast";
-import { CompanyLogo } from "../ui";
-import { readProfile } from "@/mocks/profile";
 import { KEYS } from "@/mocks/onboarding";
-import type { Job } from "@/mocks/jobs";
 import type { SavedFilter } from "@/mocks/filters";
 import { demoStore, subscribeDemo } from "@/lib/demo";
 
-/* ---------- Resume comparison (step 1 only; later steps were not observed and are not built) ---------- */
+/* ---------- Checklist demo keys (the resume flow lives in resume-customize.tsx) ---------- */
 export const CREDITS_TODAY = 2;
-
-export function ResumeCompare({ job, onClose }: { job: Job; onClose: () => void }) {
-  const [loading, setLoading] = useState(true);
-  const [stage, setStage] = useState(0);
-  const [picked, setPicked] = useState<string[]>([]);
-  const skills = readProfile().skills.map((s) => s.toLowerCase());
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 1500); return () => clearTimeout(t); }, []);
-  const matched = job.skills.filter((s) => skills.includes(s.toLowerCase()));
-  const score = Math.round((2 + (8 * matched.length) / job.skills.length) * 10) / 10;
-  const rating = score < 6 ? "Poor" : score < 8 ? "Fair" : "Good";
-  const resumeTitle = readProfile().work[0]?.title ?? "—";
-  const titleOk = job.title.toLowerCase().includes(resumeTitle.toLowerCase());
-  const Mark = ({ ok, warn }: { ok: boolean; warn?: boolean }) => ok ? <CircleCheck className="h-6 w-6 fill-green-500 text-white" aria-label="Match" /> : warn ? <CircleAlert className="h-6 w-6 fill-amber-400 text-white" aria-label="Partial" /> : <CircleX className="h-6 w-6 fill-red-500 text-white" aria-label="Gap" />;
-  const steps = ["See Your Difference", "Align Your Resume", "Review Your New Resume"];
-
-  return (
-    <Drawer open label="Generate your custom resume" onClose={onClose} width="max-w-[1100px]"
-      title={<span className="flex items-center gap-2">Generate Your Custom Resume <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-white">{CREDITS_TODAY} credits available today</span></span>}
-      header={(
-        <ol className="flex items-center justify-center gap-3 py-3 text-sm" aria-label="Steps">
-          {steps.map((s, i) => (
-            <li key={s} aria-current={i === stage ? "step" : undefined} className={`flex items-center gap-2 ${i <= stage ? "font-medium" : "text-neutral-400"}`}>
-              <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs text-white ${i <= stage ? "bg-accent" : "bg-neutral-400"}`}>{i + 1}</span>{s}{i < 2 && <span className="ml-1 h-px w-10 bg-neutral-200" />}
-            </li>
-          ))}
-        </ol>
-      )}>
-      {loading ? (
-        <div className="mx-auto mt-16 max-w-md rounded-2xl border border-line p-10 text-center" role="status">
-          <Sparkles className="mx-auto h-8 w-8 text-accent" />
-          <div className="mx-auto mt-6 h-0.5 w-48 overflow-hidden bg-neutral-100"><div className="h-0.5 w-1/2 animate-pulse bg-ink" /></div>
-          <p className="mt-6 font-semibold">Analyzing Your Resume...</p>
-          <p className="mt-3 text-sm text-neutral-600">Please keep this window open. This usually takes a few seconds.</p>
-        </div>
-      ) : stage > 0 ? (
-        <SimulatedTailor job={job} stage={stage} missing={job.skills.filter((x) => !matched.includes(x))} picked={picked} setPicked={setPicked}
-          onBack={() => setStage(stage - 1)} onNext={() => { setStage(2); demoStore.setItem(RESUME_DEMO_KEY, "1"); }} onClose={onClose} />
-      ) : (
-        <div className="flex h-full flex-col">
-          <div className="flex-1 overflow-auto p-4 md:p-6">
-            <div className="card overflow-hidden">
-              <div className="flex flex-wrap items-start justify-between gap-4 p-6">
-                <div>
-                  <h2 className="text-2xl font-semibold">Your Resume is a {rating === "Good" ? "Strong" : rating === "Fair" ? "Fair" : "Low"} Match for This Job</h2>
-                  {score < 6 && <p className="mt-2 inline-block rounded-lg bg-red-50 px-3 py-1 text-sm text-red-700">Resumes under 6.0 often get filtered out by applicant tracking systems. We can help fix that.</p>}
-                </div>
-                <div className="text-center"><p className="text-4xl font-semibold">{score.toFixed(1)}</p><p className="rounded bg-neutral-100 px-3 text-sm font-medium">{rating}</p></div>
-              </div>
-              <table className="w-full text-sm">
-                <tbody className="divide-y divide-line border-t border-line">
-                  <tr><th className="w-48 p-4 text-left font-medium">Overview</th><td className="p-4"><span className="flex items-center gap-2"><CompanyLogo initials={job.initials} color={job.color} size={28} /><span><small className="block text-neutral-500">{job.company}</small><b>{job.title}</b></span></span></td><td className="p-4"><small className="block text-neutral-500">Your resume</small><b>Primary resume</b> <Link href="/resume" className="ml-2 text-xs text-accent underline">Switch resume</Link></td></tr>
-                  <tr><th className="p-4 text-left font-medium"><span className="flex items-center justify-between">Job Title<Mark ok={titleOk} /></span></th><td className="p-4">{job.title}</td><td className="p-4">{resumeTitle}</td></tr>
-                  <tr><th className="p-4 text-left font-medium"><span className="flex items-center justify-between">Years of Experience<Mark ok={false} warn /></span></th><td className="p-4">{job.exp}</td><td className="p-4">From your work history</td></tr>
-                  <tr><th className="p-4 text-left font-medium"><span className="flex items-center justify-between">Industry Experience<Mark ok={false} warn /></span></th><td className="p-4" colSpan={2}><span className="rounded bg-neutral-100 px-2 py-1">{job.industryName}</span></td></tr>
-                  <tr><th className="p-4 text-left font-medium"><span className="flex items-center justify-between">Job Keywords ({matched.length}/{job.skills.length})<Mark ok={matched.length / job.skills.length >= 0.6} /></span></th>
-                    <td className="p-4" colSpan={2}><span className="flex flex-wrap gap-1.5">{job.skills.map((s) => matched.includes(s) ? <span key={s} className="flex items-center gap-1 rounded bg-accent-tint px-2 py-1 text-accent"><ThumbsUp className="h-3.5 w-3.5" />{s}</span> : <span key={s} className="rounded bg-neutral-100 px-2 py-1">{s}</span>)}</span></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="flex justify-center border-t border-line p-4"><button onClick={() => setStage(1)} className="pill-accent px-8 py-3">Improve My Resume for This Job</button></div>
-        </div>
-      )}
-    </Drawer>
-  );
-}
-
 export const RESUME_DEMO_KEY = "cm_checklist_resume";
 export const AUTOFILL_DEMO_KEY = "cm_checklist_autofill";
-
-function SimulatedTailor({ job, stage, missing, picked, setPicked, onBack, onNext, onClose }: {
-  job: Job; stage: number; missing: string[]; picked: string[]; setPicked: (v: string[]) => void; onBack: () => void; onNext: () => void; onClose: () => void;
-}) {
-  const p = readProfile();
-  const banner = <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Simulated demo output. No credits were used and nothing was generated by AI.</p>;
-  return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-auto p-4 md:p-6">
-        {banner}
-        {stage === 1 ? (
-          <div className="card space-y-3 p-6">
-            <h2 className="text-xl font-semibold">Align your resume with {job.title}</h2>
-            <p className="text-sm text-neutral-600">Pick the job keywords you can honestly back up. Only those are added.</p>
-            {missing.length ? missing.map((k) => (
-              <label key={k} className="flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2 text-sm">
-                <input type="checkbox" checked={picked.includes(k)} onChange={(e) => setPicked(e.target.checked ? [...picked, k] : picked.filter((x) => x !== k))} className="h-4 w-4 accent-[#2563EB]" />I have experience with {k}
-              </label>
-            )) : <p className="text-sm">Your profile already covers every keyword for this job.</p>}
-          </div>
-        ) : (
-          <div className="card space-y-3 p-6 font-mono text-sm">
-            <p className="font-sans text-xl font-semibold">Sample tailored resume</p>
-            <p><b>{p.personal.first} {p.personal.last}</b> · {p.personal.city}</p>
-            <p><b>SUMMARY</b><br />{p.work[0]?.title ?? "Professional"} focused on {job.industryName.toLowerCase()} work, applying for {job.title} at {job.company}.</p>
-            <p><b>SKILLS</b><br />{[...new Set([...p.skills, ...picked])].join(" · ")}</p>
-            <p><b>EXPERIENCE</b><br />{p.work.map((w) => `${w.title}, ${w.company}`).join("\n")}</p>
-          </div>
-        )}
-      </div>
-      <div className="flex justify-center gap-2 border-t border-line p-4">
-        <button onClick={onBack} className="pill-ghost">Back</button>
-        {stage === 1 ? <button onClick={onNext} className="pill-accent px-8">Review My New Resume</button> : <button onClick={onClose} className="pill-accent px-8">Done</button>}
-      </div>
-    </div>
-  );
-}
 
 /* ---------- Right rail ---------- */
 
