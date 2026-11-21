@@ -1,8 +1,86 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { Lock, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronRight, Lock, X } from "lucide-react";
+
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+// Keeps Tab inside an open dialog and returns focus to the opener on close.
+export function useFocusTrap<T extends HTMLElement>(active: boolean) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!active || !el) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const items = () => [...el.querySelectorAll<HTMLElement>(FOCUSABLE)];
+    (items()[0] ?? el).focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const f = items();
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    };
+    el.addEventListener("keydown", onKey);
+    return () => { el.removeEventListener("keydown", onKey); opener?.focus?.(); };
+  }, [active]);
+  return ref;
+}
+
+/** Right-side drawer. When `dirty`, closing asks before discarding. */
+export function Drawer({ open, onClose, label, title, action, header, dirty = false, width = "max-w-3xl", children }: {
+  open: boolean; onClose: () => void; label: string; title?: React.ReactNode; action?: React.ReactNode; header?: React.ReactNode;
+  dirty?: boolean; width?: string; children: React.ReactNode;
+}) {
+  const [asking, setAsking] = useState(false);
+  const ref = useFocusTrap<HTMLElement>(open);
+  const tryClose = () => (dirty ? setAsking(true) : onClose());
+  useEffect(() => {
+    if (!open) { setAsking(false); return; }
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && tryClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50" onClick={tryClose}>
+      <aside ref={ref} role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()} className={`animate-pop absolute inset-y-0 right-0 flex w-full ${width} flex-col bg-white shadow-xl`}>
+        <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+          <button onClick={tryClose} aria-label="Close" className="rounded-lg border border-line p-1.5 hover:bg-neutral-50"><ChevronRight className="h-4 w-4" /></button>
+          <div className="min-w-0 flex-1 text-lg font-semibold">{title ?? label}</div>
+          {action}
+        </div>
+        {asking && (
+          <div role="alertdialog" aria-label="Unsaved changes" className="flex flex-wrap items-center gap-2 bg-amber-50 px-4 py-2.5 text-sm">
+            <span className="flex-1">You have unsaved changes. Discard them?</span>
+            <button onClick={() => setAsking(false)} className="pill-ghost py-1">Keep editing</button>
+            <button onClick={() => { setAsking(false); onClose(); }} className="pill bg-red-500 py-1 text-white hover:bg-red-600">Discard</button>
+          </div>
+        )}
+        {header}
+        <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+      </aside>
+    </div>
+  );
+}
+
+export function Confirm({ open, title, body, confirmLabel, danger, onConfirm, onCancel }: {
+  open: boolean; title: string; body: React.ReactNode; confirmLabel: string; danger?: boolean; onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <Modal open={open} onClose={onCancel} title={title}>
+      <div className="p-6">
+        <h2 className="pr-8 text-lg font-semibold">{title}</h2>
+        <div className="mt-2 text-sm text-neutral-600">{body}</div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onCancel} className="pill-ghost">Cancel</button>
+          <button onClick={onConfirm} className={danger ? "pill bg-red-500 text-white hover:bg-red-600" : "pill-accent"}>{confirmLabel}</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 export function Logo({ withText = true }: { withText?: boolean }) {
   return (
@@ -85,10 +163,12 @@ export function Modal({ open, onClose, children, wide = false, title }: { open: 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+  const trap = useFocusTrap<HTMLDivElement>(open);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
+        ref={trap}
         role="dialog"
         aria-modal="true"
         aria-label={title}
