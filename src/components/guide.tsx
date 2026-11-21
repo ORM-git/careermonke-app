@@ -74,7 +74,8 @@ export function GuideBar({ dark = false }: { dark?: boolean }) {
   const btn = `flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold ${dark ? "hover:bg-white/10" : "hover:bg-neutral-100"}`;
 
   return (
-    <div role="region" aria-label="Guided demo" className={`fixed bottom-16 left-1/2 z-[60] w-[min(680px,calc(100%-1rem))] -translate-x-1/2 rounded-2xl p-3 shadow-2xl ring-1 md:bottom-4 ${dark ? "bg-[#262626] text-white ring-white/10" : "bg-white ring-black/5"}`}>
+    // Phones: below dialogs/sheets (z-50) so it never covers their buttons; above the bottom nav. Desktop keeps z-60.
+    <div role="region" aria-label="Guided demo" className={`fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-1/2 z-[45] w-[min(680px,calc(100%-1rem))] md:z-[60] -translate-x-1/2 rounded-2xl p-3 shadow-2xl ring-1 md:bottom-4 ${dark ? "bg-[#262626] text-white ring-white/10" : "bg-white ring-black/5"}`}>
       <div className="flex items-start gap-3">
         <Compass className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
         <div className="min-w-0 flex-1">
