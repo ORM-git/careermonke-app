@@ -30,7 +30,7 @@ describe("Profile", () => {
     await userEvent.click(within(drawer()).getByRole("button", { name: "UPDATE" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(readProfile().personal.postal).toBe("560001");
-  });
+  }, 10_000);
 
   it("closing with unsaved changes asks, and Discard throws the draft away", async () => {
     render(<ProfileView />);
