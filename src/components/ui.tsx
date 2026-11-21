@@ -136,7 +136,7 @@ export function MatchRing({ value, size = 72, stroke = 4, dark = false, label }:
   );
 }
 
-export const matchLabel = (v: number) => (v >= 70 ? "GOOD MATCH" : v >= 40 ? "FAIR MATCH" : "WEAK MATCH");
+export const matchLabel = (v: number) => (v >= 90 ? "STRONG MATCH" : v >= 70 ? "GOOD MATCH" : v >= 40 ? "FAIR MATCH" : "WEAK MATCH");
 
 export function UpgradePill({ children = "Upgrade", className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
@@ -186,7 +186,7 @@ export function Modal({ open, onClose, children, wide = false, title }: { open: 
 
 export function Tabs<T extends string>({ tabs, value, onChange, counts }: { tabs: readonly T[]; value: T; onChange: (t: T) => void; counts?: Partial<Record<T, number>> }) {
   return (
-    <div className="flex gap-6" role="tablist">
+    <div className="flex min-w-0 gap-6 overflow-x-auto" role="tablist">
       {tabs.map((t) => (
         <button
           key={t}
