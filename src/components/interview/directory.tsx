@@ -6,6 +6,7 @@ import { ChevronRight, Plus, Search } from "lucide-react";
 import { PageHeader } from "../shell";
 import { CompanyLogo } from "../ui";
 import { companies, groups, snapshot, ticker, type Company } from "@/mocks/interview";
+import { toast } from "../toast";
 
 const initials = (n: string) => n.split(" ").map((w) => w[0]).join("").slice(0, 2);
 
@@ -74,7 +75,7 @@ export function InterviewDirectory() {
             <section key={g}>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-xl font-semibold">{g}</h3>
-                {g === "High-Growth" && <a href="mailto:questions@careermonke.com?subject=Interview%20question" className="flex items-center gap-1 text-sm underline"><Plus className="h-4 w-4" />Contribute a question</a>}
+                {g === "High-Growth" && <button onClick={() => toast("Demo: question contributions aren’t sent anywhere.")} className="flex items-center gap-1 text-sm underline"><Plus className="h-4 w-4" />Contribute a question</button>}
               </div>
               <div className={`grid gap-4 sm:grid-cols-2 ${feat ? "lg:grid-cols-[2fr_1fr_1fr]" : "lg:grid-cols-4"}`}>
                 {feat && <Featured c={feat} />}

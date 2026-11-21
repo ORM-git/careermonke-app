@@ -31,7 +31,9 @@ describe("Practice mode", () => {
     renderPractice();
     await userEvent.click(screen.getByRole("button", { name: /Question List/ }));
     const drawer = screen.getByRole("dialog", { name: "Question list" });
-    expect(within(drawer).getAllByLabelText(/Locked .* question/).length).toBeGreaterThan(0);
+    expect(within(drawer).queryByLabelText(/Locked .* question/)).not.toBeInTheDocument(); // everything unlocked in the demo
+    await userEvent.selectOptions(within(drawer).getByLabelText("Seniority"), "Mid Level");
+    expect(within(drawer).getAllByRole("link").length).toBe(questionsFor("flipkart").filter((x) => x.seniority === "Mid Level").length);
     await userEvent.click(within(drawer).getByRole("button", { name: "Close question list" }));
     expect(screen.queryByRole("dialog", { name: "Question list" })).not.toBeInTheDocument();
   });
@@ -62,7 +64,7 @@ describe("Practice mode", () => {
     expect((screen.getByLabelText("Python code editor") as HTMLTextAreaElement).value).toContain("# my note");
   });
 
-  it("run goes Running... -> Not run, opens Test Result and marks In Progress", async () => {
+  it("run shows a labelled sample walkthrough: failure, then success, then completion", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     renderPractice();
     expect(screen.getByTestId("status")).toHaveTextContent("Not Started");
@@ -71,8 +73,14 @@ describe("Practice mode", () => {
     expect(screen.getByRole("tab", { name: "Test Result" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Running sample cases...")).toBeInTheDocument();
     await act(async () => { vi.advanceTimersByTime(1300); });
-    expect(screen.getByText("Not run")).toBeInTheDocument();
+    expect(screen.getByText("Sample result: 1 case failed")).toBeInTheDocument();
+    expect(screen.getAllByText(/your code was not executed/).length).toBeGreaterThan(0);
     expect(screen.getByTestId("status")).toHaveTextContent("In Progress");
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+    await act(async () => { vi.advanceTimersByTime(1300); });
+    expect(screen.getByText("Sample result: all cases passed")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Mark question complete" }));
+    expect(screen.getByTestId("status")).toHaveTextContent("Completed");
     vi.useRealTimers();
   });
 

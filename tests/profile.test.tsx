@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { demoStore } from "@/lib/demo";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProfileView } from "@/components/profile/profile-view";
 import { UploadModal, resumeFileError } from "@/components/resume-upload";
 import { readProfile, sectionDone, seedProfile } from "@/mocks/profile";
 
-beforeEach(() => localStorage.setItem("cm-profile-intro", "1"));
+beforeEach(() => demoStore.setItem("cm-profile-intro", "1"));
 const drawer = () => screen.getByRole("dialog");
 
 describe("Profile", () => {
