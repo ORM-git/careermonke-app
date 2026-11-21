@@ -40,12 +40,24 @@ function Connections({ job }: { job: Job }) {
     if (!/^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i.test(li.trim())) { setLiErr("Paste a LinkedIn profile URL like https://www.linkedin.com/in/name"); return; }
     setLiErr(""); setCredit("this LinkedIn profile");
   };
+  // Pro connection cards are unlocked in this demo and show fictional sample contacts only.
+  const [open, setOpen] = useState<string[]>([]);
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const sample = (label: string) => label === "From Your School"
+    ? [{ n: "Rohit S. (sample)", t: "Engineer · same university" }, { n: "Ananya K. (sample)", t: "Product Manager · same university" }]
+    : [{ n: "Kavya R. (sample)", t: "Senior Engineer · ex-colleague" }, { n: "Arjun M. (sample)", t: "Engineering Manager · ex-colleague" }];
   const blurred = (tone: string, label: string) => (
     <div className={`relative rounded-xl border p-3 ${tone}`}>
       <p className="text-sm font-semibold">{label}</p>
-      <div className="mt-3 flex items-center justify-between"><span aria-hidden="true" className="flex -space-x-2 blur-[3px]">{[0, 1, 2].map((k) => <span key={k} className="h-7 w-7 rounded-full border-2 border-white bg-current opacity-50" />)}</span>
-        <Link href="/pricing" className="rounded-full border border-ink bg-white px-4 py-1 text-sm font-medium">Unlock</Link></div>
-      <p aria-hidden="true" className="mt-2 text-xs blur-[3px]">3 connections · name@company.example</p>
+      {open.includes(label) ? (
+        <ul className="mt-2 space-y-1 text-xs text-ink">{sample(label).map((p) => <li key={p.n}><b>{p.n}</b> · {p.t}</li>)}</ul>
+      ) : (
+        <>
+          <div className="mt-3 flex items-center justify-between"><span aria-hidden="true" className="flex -space-x-2 blur-[3px]">{[0, 1, 2].map((k) => <span key={k} className="h-7 w-7 rounded-full border-2 border-white bg-current opacity-50" />)}</span>
+            <button onClick={() => setOpen([...open, label])} className="rounded-full border border-ink bg-white px-4 py-1 text-sm font-medium" title="Pro feature, unlocked in this demo">Unlock</button></div>
+          <p aria-hidden="true" className="mt-2 text-xs blur-[3px]">2 connections · sample contacts</p>
+        </>
+      )}
     </div>
   );
   return (
@@ -81,8 +93,9 @@ function Connections({ job }: { job: Job }) {
       </form>
       {liErr && <p role="alert" className="text-sm text-red-500">{liErr}</p>}
       <Confirm open={!!credit} title="Use 1 email credit?" confirmLabel="Use 1 credit" onCancel={() => setCredit(null)}
-        body={<>Finding the email for {credit} uses 1 of your {CREDITS_TODAY} credits today.</>}
-        onConfirm={() => { setCredit(null); toast("Email lookup isn't connected in this demo yet, so no credit was used."); }} />
+        body={<>In the real app, finding the email for {credit} uses 1 of your {CREDITS_TODAY} credits today. In this demo nothing is charged and a fictional sample is shown.</>}
+        onConfirm={() => { setRevealed(credit); setCredit(null); }} />
+      {revealed && <p role="status" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Sample result for {revealed}: <b>sample.contact@{job.company.toLowerCase().replace(/\W+/g, "")}.example</b> (fictional; no lookup was made and no credit was used).</p>}
     </section>
   );
 }

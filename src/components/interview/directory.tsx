@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronRight, Plus, Search } from "lucide-react";
 import { PageHeader } from "../shell";
-import { CompanyLogo, UpgradePill } from "../ui";
+import { CompanyLogo } from "../ui";
 import { companies, groups, snapshot, ticker, type Company } from "@/mocks/interview";
 
 const initials = (n: string) => n.split(" ").map((w) => w[0]).join("").slice(0, 2);
@@ -34,7 +34,7 @@ export function InterviewDirectory() {
 
   return (
     <>
-      <PageHeader title="INTERVIEW" right={<UpgradePill>Upgrade to Unlock Interview Questions</UpgradePill>} />
+      <PageHeader title="INTERVIEW" right={<span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-semibold text-accent">Pro feature · unlocked in this demo</span>} />
       <div className="mx-auto max-w-6xl space-y-8 p-4 md:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><h2 className="text-2xl font-semibold">Real Interview Questions</h2><p className="text-sm text-neutral-500">Technical and behavioral questions reported by candidates. Counts as of {snapshot.date}.</p></div>

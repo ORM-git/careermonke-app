@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Lock, MoreHorizontal, X } from "lucide-react";
+import { ChevronDown, MoreHorizontal, X } from "lucide-react";
 import { CheckGroup, ExpRange, RadioGroup, TagPicker } from "./filter-controls";
 import { countries, jobFunctions } from "@/mocks/onboarding";
 import { DATE_POSTED, EXP_MAX, INDUSTRIES, JOB_TYPES, LEVELS, WORK_MODELS, type Filter } from "@/mocks/filters";
@@ -124,7 +124,7 @@ export function QuickFilters({ f, apply, onAllFilters, onHidden }: { f: Filter; 
       <Pop label={DATE_POSTED.find((d) => d.v === f.datePosted)?.label ?? "Date Posted"} active={!!f.datePosted}>{(c) => <DatePop f={f} apply={apply} close={c} />}</Pop>
       <Pop label={more(f.industries, "Industry")} active={!!f.industries.length}>{(c) => <IndustryPop f={f} apply={apply} close={c} />}</Pop>
       <Pop label={f.expOpen ? "Years of Experience" : `${f.exp[0]}-${f.exp[1]} yrs`} active={!f.expOpen}>{(c) => <ExpPop f={f} apply={apply} close={c} />}</Pop>
-      <button type="button" onClick={onHidden} className="chip border-blue-200 bg-accent-tint"><Lock className="h-3.5 w-3.5" />Hidden Jobs</button>
+      <button type="button" onClick={onHidden} aria-pressed={f.hiddenJobs} title="Fresh roles not on the big job boards. Pro feature, unlocked in this demo." className={`chip ${f.hiddenJobs ? "chip-on" : "border-blue-200 bg-accent-tint"}`}>Hidden Jobs<span className="rounded bg-accent px-1 text-[10px] font-bold text-white">PRO</span></button>
       <button type="button" onClick={onAllFilters} className="chip border-accent bg-accent text-white hover:border-accent"><MoreHorizontal className="h-3.5 w-3.5" />All Filters</button>
       {f.datePosted && <button type="button" onClick={() => apply({ datePosted: "" })} aria-label="Clear date posted" className="text-neutral-500"><X className="h-4 w-4" /></button>}
     </div>

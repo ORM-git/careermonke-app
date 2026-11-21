@@ -6,6 +6,8 @@ import { ArrowUp, ChevronDown, Mic, Search, Sparkles, Zap } from "lucide-react";
 import { PageHeader } from "@/components/shell";
 import { CompanyLogo } from "@/components/ui";
 import { jobs } from "@/mocks/jobs";
+import { exploreSearch } from "@/mocks/explore";
+import { useGuideAction } from "@/components/guide";
 import { user } from "@/mocks/user";
 
 const SUGGESTIONS = ["Data analyst roles posted in the last 24 hours", "Remote product jobs in fintech", "Entry-level analyst roles above ₹12L"];
@@ -17,35 +19,38 @@ export default function ExplorePage() {
   const [thinking, setThinking] = useState(false);
   const [left, setLeft] = useState(user.exploreMessages);
 
+  // The free-message counter is informational in this demo; searches keep working after it reaches 0.
   const send = (t: string) => {
-    if (!t.trim() || thinking || left === 0) return;
+    if (!t.trim() || thinking) return;
     setMsgs((m) => [...m, { role: "user", text: t }]);
-    setText(""); setThinking(true); setLeft((n) => n - 1);
+    setText(""); setThinking(true); setLeft((n) => Math.max(0, n - 1));
     setTimeout(() => {
-      const words = t.toLowerCase().split(/\W+/);
-      const hits = jobs.filter((j) => words.some((w) => w.length > 3 && `${j.title} ${j.mode} ${j.industry}`.toLowerCase().includes(w)));
-      const picks = (hits.length >= 3 ? hits : [...hits, ...jobs]).slice(0, 3);
-      setMsgs((m) => [...m, { role: "bot", text: "Here are 3 roles that fit what you asked for, ranked by match:", jobs: picks }]);
+      const r = exploreSearch(t);
+      const about = r.understood.length ? ` for ${r.understood.join(", ")}` : "";
+      setMsgs((m) => [...m, r.jobs.length
+        ? { role: "bot", text: `Found ${r.jobs.length} sample ${r.jobs.length === 1 ? "role" : "roles"}${about}, ranked by match:`, jobs: r.jobs }
+        : { role: "bot", text: `No sample roles match${about} exactly. Try fewer conditions.` }]);
       setThinking(false);
     }, 1000);
   };
+  useGuideAction("explore-example", () => send(SUGGESTIONS[0]));
 
   const box = (
     <div className="w-full overflow-hidden rounded-2xl border-2 border-blue-200 bg-accent-tint">
       <div className="flex items-center justify-between px-4 py-2.5 text-sm font-semibold">
-        <span className="flex items-center gap-2"><Zap className="h-4 w-4 fill-accent text-accent" />Try AI Search for free · {left} free messages left today</span>
+        <span className="flex items-center gap-2"><Zap className="h-4 w-4 fill-accent text-accent" />Try AI Search for free · {left} free messages left today <span className="font-normal text-neutral-500">(unlimited in this demo)</span></span>
         <Link href="/pricing" className="rounded-lg bg-ink px-2.5 py-1 text-xs text-white">Upgrade →</Link>
       </div>
       <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="rounded-2xl bg-white p-4">
         <label htmlFor="ask" className="sr-only">Describe the job you want</label>
         <textarea id="ask" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(text); } }}
-          rows={msgs.length ? 1 : 3} placeholder={left ? "Search by role, industry, skills, location, or requirements" : "You've used today's free messages. Upgrade for unlimited AI search."}
-          className="w-full resize-none text-[15px] outline-none" disabled={!left} />
+          rows={msgs.length ? 1 : 3} placeholder="Search by role, industry, skills, location, or requirements"
+          className="w-full resize-none text-[15px] outline-none" />
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {["India", "Onsite (+2)", "Entry Level (+2)"].map((c) => <span key={c} className="chip bg-accent-tint/60">{c}<ChevronDown className="h-3.5 w-3.5" /></span>)}
           <span className="chip">··· All Filters</span>
           <button type="button" aria-label="Voice input" className="ml-auto rounded-full bg-neutral-100 p-2"><Mic className="h-4 w-4" /></button>
-          <button aria-label="Send" disabled={!text.trim() || !left} className="rounded-full bg-accent p-2 text-white disabled:opacity-40"><ArrowUp className="h-4 w-4" /></button>
+          <button aria-label="Send" disabled={!text.trim()} className="rounded-full bg-accent p-2 text-white disabled:opacity-40"><ArrowUp className="h-4 w-4" /></button>
         </div>
       </form>
     </div>

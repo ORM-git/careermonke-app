@@ -7,10 +7,15 @@ import { Logo } from "../ui";
 import { toast } from "../toast";
 import { QuestionArticle, SECTIONS, Tags } from "./question-article";
 import { QuestionCard } from "./question-card";
-import { LimitedPill, LockedFilters, initials } from "./company-browser";
+import { LimitedPill, QuestionFilters, applyQFilter, initials, type QFilter } from "./company-browser";
 import { langLabel, questionsFor, readStatus, setStatus, type Company, type Lang, type Question, type Status } from "@/mocks/interview";
 
-type Result = { verdict: "Not run"; cases: { output: string }[] };
+// Sample walkthrough results. The visitor's code is never executed; runs alternate an example failure and an example success.
+type Result = { kind: "fail" | "pass"; cases: { output: string; pass: boolean }[] };
+export const sampleResult = (cases: { expected: string }[], attempt: number): Result => {
+  const fail = attempt % 2 === 0;
+  return { kind: fail ? "fail" : "pass", cases: cases.map((c, i) => (fail && i === cases.length - 1 ? { output: "(sample wrong answer)", pass: false } : { output: c.expected, pass: true })) };
+};
 
 function QuestionDrawer({ company, all, currentId, status, onClose }: { company: Company; all: Question[]; currentId: string; status: Record<string, Status>; onClose: () => void }) {
   const [q, setQ] = useState("");
@@ -19,7 +24,8 @@ function QuestionDrawer({ company, all, currentId, status, onClose }: { company:
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  const list = all.filter((x) => !q.trim() || (!x.locked && x.title.toLowerCase().includes(q.trim().toLowerCase())));
+  const [qf, setQf] = useState<QFilter>({ topic: "", seniority: "" });
+  const list = applyQFilter(all, qf, q);
   return (
     <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
       <aside role="dialog" aria-modal="true" aria-label="Question list" onClick={(e) => e.stopPropagation()} className="animate-pop absolute inset-y-0 left-0 flex w-full max-w-[560px] flex-col bg-[#1f1f1f] text-white">
@@ -29,7 +35,7 @@ function QuestionDrawer({ company, all, currentId, status, onClose }: { company:
           <button onClick={onClose} aria-label="Close question list" className="ml-auto rounded-lg border border-white/15 p-1.5 hover:bg-white/10"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex items-center gap-2 border-b border-white/10 p-3">
-          <LockedFilters dark />
+          <QuestionFilters f={qf} set={setQf} dark />
           <label className="ml-auto flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-sm">
             <Search className="h-4 w-4" /><span className="sr-only">Search questions</span>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="w-28 bg-transparent outline-none placeholder:text-white/40" />
@@ -84,6 +90,7 @@ export function PracticeMode({ company, questionId }: { company: Company; questi
   const [activeCase, setActiveCase] = useState(0);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [section, setSection] = useState<string>(SECTIONS[0].id);
   const [drawer, setDrawer] = useState(false);
   const [status, setStatusMap] = useState<Record<string, Status>>({});
@@ -100,9 +107,10 @@ export function PracticeMode({ company, questionId }: { company: Company; questi
   const run = () => {
     setRunning(true); setBottom("Test Result"); setResult(null);
     setStatus(q.id, "In Progress"); setStatusMap(readStatus());
-    // shortcut: no sandboxed runner is wired up, so code is never executed; connect a backend runner before showing pass/fail
-    setTimeout(() => { setResult({ verdict: "Not run", cases: (q.cases ?? []).map(() => ({ output: "Not executed in this demo" })) }); setRunning(false); }, 1200);
+    // shortcut: no sandboxed runner is wired up, so the visitor's code is never executed; results are a labelled sample walkthrough
+    setTimeout(() => { setResult(sampleResult(q.cases ?? [], attempt)); setAttempt((a) => a + 1); setRunning(false); }, 1200);
   };
+  const complete = () => { setStatus(q.id, "Completed"); setStatusMap(readStatus()); };
   const prev = readable[idx - 1], next = readable[idx + 1];
   const navBtn = "flex h-9 w-9 items-center justify-center hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent";
   const panel = "flex min-h-0 flex-col rounded-2xl border border-white/10 bg-[#262626]";
@@ -170,11 +178,19 @@ export function PracticeMode({ company, questionId }: { company: Company; questi
               <p className="flex flex-1 items-center justify-center p-6 text-sm text-white/60">Run your code to see results here.</p>
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">
-                {bottom === "Test Result" && <p className="border-b border-white/10 px-4 py-2 font-semibold text-amber-300">Not run <span className="text-xs font-normal text-white/60">· the demo has no code runner yet, so nothing was executed</span></p>}
+                {bottom === "Test Result" && result && (
+                  <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2">
+                    <p className={`font-semibold ${result.kind === "pass" ? "text-green-400" : "text-red-400"}`}>{result.kind === "pass" ? "Sample result: all cases passed" : "Sample result: 1 case failed"}</p>
+                    <span className="text-xs text-white/60">· Demo only: your code was not executed{result.kind === "fail" ? ". Run again to see a passing example." : "."}</span>
+                    {result.kind === "pass" && (st === "Completed"
+                      ? <span className="ml-auto rounded-full bg-green-500/20 px-2.5 py-0.5 text-xs text-green-300">Marked complete (demo)</span>
+                      : <button onClick={complete} className="ml-auto rounded-md bg-green-600 px-3 py-1 text-xs font-semibold hover:bg-green-500">Mark question complete</button>)}
+                  </div>
+                )}
                 <div className="flex min-h-0 flex-1">
                   <div role="tablist" aria-label="Test cases" className="flex w-28 shrink-0 flex-col gap-1 border-r border-white/10 p-2">
                     {q.cases?.map((_, i) => (
-                      <button key={i} role="tab" aria-selected={activeCase === i} onClick={() => setActiveCase(i)} className={`rounded-lg px-3 py-1.5 text-left text-sm ${activeCase === i ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}>Case {i + 1}</button>
+                      <button key={i} role="tab" aria-selected={activeCase === i} onClick={() => setActiveCase(i)} className={`rounded-lg px-3 py-1.5 text-left text-sm ${activeCase === i ? "bg-white/10" : "text-white/70 hover:bg-white/5"}`}>Case {i + 1}{bottom === "Test Result" && result && <span className={result.cases[i]?.pass ? "text-green-400" : "text-red-400"}> {result.cases[i]?.pass ? "✓" : "✗"}</span>}</button>
                     ))}
                   </div>
                   {c && (
@@ -188,7 +204,7 @@ export function PracticeMode({ company, questionId }: { company: Company; questi
                         </>
                       ) : (
                         <>
-                          <p className="font-semibold">Output</p><p className="rounded-md bg-black/30 px-3 py-2 font-mono text-white/60">{result?.cases[activeCase]?.output}</p>
+                          <p className="font-semibold">Sample output <span className="font-normal text-white/50">(illustrative, not from your code)</span></p><p className="rounded-md bg-black/30 px-3 py-2 font-mono text-white/80">{result?.cases[activeCase]?.output}</p>
                           <p className="font-semibold">Expected</p><p className="rounded-md bg-black/30 px-3 py-2 font-mono">{c.expected}</p>
                         </>
                       )}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Bell, CreditCard, FileText, LogOut, MessagesSquare, Pencil, User } from "lucide-react";
 import { Modal, UpgradePill } from "./ui";
 import { useApp } from "./app-state";
+import { RestartDemoButton } from "./demo-gate";
 import { user } from "@/mocks/user";
 import { demoStore } from "@/lib/demo";
 
@@ -56,6 +57,7 @@ export function SettingsModal() {
           <div className="mt-auto pt-6">
             <Link href="/privacy-policy" onClick={close} className={`${navBtn} hover:bg-neutral-50`}><FileText className="h-4 w-4" />Privacy Policy</Link>
             <button onClick={logout} className={`${navBtn} hover:bg-neutral-50`}><LogOut className="h-4 w-4" />Log Out</button>
+            <RestartDemoButton className={`${navBtn} text-accent hover:bg-accent-tint`} />
           </div>
         </nav>
 

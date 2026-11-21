@@ -9,6 +9,7 @@ import { toast } from "../toast";
 import { SectionForm, sectionValid } from "./forms";
 import { EEO_COUNTRIES, readProfile, saveProfile, sectionDone, SECTIONS, type Profile, type Section } from "@/mocks/profile";
 import { demoStore } from "@/lib/demo";
+import { useGuideAction } from "../guide";
 
 const anchor = (s: Section) => `pf-${s.replace(/\W+/g, "-").toLowerCase()}`;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -44,6 +45,7 @@ export function ProfileView() {
     setProfile(readProfile());
     if (!demoStore.getItem("cm-profile-intro")) { setIntro(true); demoStore.setItem("cm-profile-intro", "1"); }
   }, []);
+  useGuideAction("profile-wizard", () => { const p = readProfile(); setIntro(false); setDraft(structuredClone(p)); setTried(false); setWizard(0); });
   if (!profile) return null;
 
   const done = sectionDone(profile);

@@ -18,7 +18,7 @@ const NAV = [
   { id: "company", label: "Company Insights", sub: "Company Search / Exclude Staffing Agency…" },
   { id: "pro", label: "Pro Exclusive", sub: "Start Time / Graduation Time / Hidden Jobs" },
 ];
-const PRO_TIP = "This filter is for Pro members. Upgrade to Pro to set it.";
+const PRO_TIP = "A Pro filter, unlocked in this demo. Sample jobs carry no start or graduation dates, so it doesn't change results.";
 
 function Card({ title, required, hint, onClear, children }: { title: string; required?: boolean; hint?: string; onClear?: () => void; children: React.ReactNode }) {
   return (
@@ -129,20 +129,20 @@ export function FilterEditor({ initial, editingSaved, onConfirm, onDelete, onClo
 
             <div id="fe-pro" className="flex scroll-mt-2 items-center justify-between pt-4">
               <h3 className="text-lg font-semibold">Pro Exclusive</h3>
-              <Link href="/pricing" className="flex items-center gap-1 text-sm underline"><Zap className="h-4 w-4 fill-accent text-accent" />Upgrade to Pro</Link>
+              <span className="flex items-center gap-1 rounded-full bg-accent-tint px-2.5 py-0.5 text-xs font-semibold text-accent"><Zap className="h-3.5 w-3.5 fill-accent" />Pro · unlocked in this demo</span>
             </div>
             {intern && (
               <>
                 <Card title="Internship Start Time" required hint="When you can start an internship.">
                   <div className="grid grid-cols-2 gap-2" title={PRO_TIP}>
-                    <select aria-label="Internship start year" disabled className="input cursor-not-allowed border-transparent"><option>Any Year</option></select>
-                    <select aria-label="Internship start month" disabled className="input cursor-not-allowed border-transparent"><option>Any Month</option></select>
+                    <select aria-label="Internship start year" value={d.internStart.split("|")[0] ?? ""} onChange={(e) => { const p = d.internStart.split("|"); p[0] = e.target.value; set({ internStart: p.join("|") }); }} className="input border-transparent"><option value="">Any</option>{["2026","2027","2028"].map((o) => <option key={o}>{o}</option>)}</select>
+                    <select aria-label="Internship start month" value={d.internStart.split("|")[1] ?? ""} onChange={(e) => { const p = d.internStart.split("|"); p[1] = e.target.value; set({ internStart: p.join("|") }); }} className="input border-transparent"><option value="">Any</option>{["Jan","Apr","Jun","Sep"].map((o) => <option key={o}>{o}</option>)}</select>
                   </div>
                 </Card>
                 <Card title="Graduation Time" required hint="When you graduate.">
                   <div className="grid grid-cols-2 gap-2" title={PRO_TIP}>
-                    <select aria-label="Graduation year" disabled className="input cursor-not-allowed border-transparent"><option>Any Year</option></select>
-                    <select aria-label="Graduation season" disabled className="input cursor-not-allowed border-transparent"><option>Any Season</option></select>
+                    <select aria-label="Graduation year" value={d.gradTime.split("|")[0] ?? ""} onChange={(e) => { const p = d.gradTime.split("|"); p[0] = e.target.value; set({ gradTime: p.join("|") }); }} className="input border-transparent"><option value="">Any</option>{["2026","2027","2028"].map((o) => <option key={o}>{o}</option>)}</select>
+                    <select aria-label="Graduation season" value={d.gradTime.split("|")[1] ?? ""} onChange={(e) => { const p = d.gradTime.split("|"); p[1] = e.target.value; set({ gradTime: p.join("|") }); }} className="input border-transparent"><option value="">Any</option>{["Spring","Summer","Fall","Winter"].map((o) => <option key={o}>{o}</option>)}</select>
                   </div>
                 </Card>
               </>
@@ -150,7 +150,7 @@ export function FilterEditor({ initial, editingSaved, onConfirm, onDelete, onClo
             <Card title="Hidden Jobs">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-neutral-500">Show only fresh roles that aren&apos;t posted on the big job boards.</p>
-                <span className="flex items-center gap-1"><Lock className="h-3.5 w-3.5 text-neutral-400" /><Switch label="Hidden jobs" on={false} onChange={() => undefined} disabled title={PRO_TIP} /></span>
+                <Switch label="Hidden jobs" on={d.hiddenJobs} onChange={(v) => set({ hiddenJobs: v })} title="Pro filter, unlocked in this demo" />
               </div>
             </Card>
             {editingSaved && onDelete && <button onClick={() => setDeleting(true)} className="flex items-center gap-1 py-2 text-sm underline md:hidden"><Trash2 className="h-4 w-4" />Delete filter</button>}

@@ -161,29 +161,73 @@ const full: Omit<Question, "updated">[] = [
   },
 ];
 
-const lockedShapes = [
-  { topic: "Behavioral & Experience", type: "Culture & Leadership", seniority: "Mid Level", role: "Engineering Manager", round: "Phone Screen" },
-  { topic: "Coding", type: "Data Structures & Algorithms", seniority: "Senior Level", role: "Software Engineer", round: "Onsite" },
-  { topic: "System Design", type: "Distributed Systems", seniority: "Senior Level", role: "Backend Engineer", round: "Onsite" },
-  { topic: "Coding", type: "Data Structures & Algorithms", seniority: "Entry Level", role: "Data Engineer", round: "Phone Screen" },
-  { topic: "Behavioral & Experience", type: "Past Project Deep-Dive", seniority: "Mid Level", role: "Software Engineer", round: "Onsite" },
-  { topic: "Coding", type: "SQL", seniority: "Entry Level", role: "Data Analyst", round: "Phone Screen" },
-];
+// Two more original questions so every company shows six readable samples (all unlocked in this demo).
+full.push(
+  {
+    id: "q-pair-total", title: "Find Two Orders That Add Up to a Voucher Value", topic: "Coding", type: "Data Structures & Algorithms",
+    difficulty: "Easy", seniority: "Entry Level", role: "Backend Engineer", jobType: "Full-time", round: "Phone Screen", locked: false,
+    statement: "Given an array of order totals and a voucher value, return the indices of two different orders whose totals add up exactly to the voucher. Assume exactly one answer exists.",
+    constraints: ["2 <= totals.length <= 10,000", "Exactly one valid pair exists", "Aim for O(n) time"],
+    examples: [{ input: "totals = [120, 450, 80, 300], voucher = 380", output: "[2, 3]", explanation: "80 + 300 = 380." }],
+    tips: ["What they are testing: trading memory for speed with a hash map.", "Common mistake: using the same order twice."],
+    approach: [
+      { title: "Remember what you have seen", body: "Store each total's index in a map as you scan." },
+      { title: "Look for the complement", body: "For each total, check whether voucher - total is already in the map." },
+    ],
+    starter: {
+      python: "class Solution:\n    def pairForVoucher(self, totals: list[int], voucher: int) -> list[int]:\n        # Write your code here\n        pass\n",
+      javascript: "/**\n * @param {number[]} totals\n * @param {number} voucher\n * @return {number[]}\n */\nfunction pairForVoucher(totals, voucher) {\n  // Write your code here\n}\n",
+      java: "class Solution {\n    public int[] pairForVoucher(int[] totals, int voucher) {\n        // Write your code here\n        return new int[0];\n    }\n}\n",
+    },
+    solution: {
+      python: "class Solution:\n    def pairForVoucher(self, totals, voucher):\n        seen = {}\n        for i, t in enumerate(totals):\n            if voucher - t in seen:\n                return [seen[voucher - t], i]\n            seen[t] = i\n",
+      javascript: "function pairForVoucher(totals, voucher) {\n  const seen = new Map();\n  for (let i = 0; i < totals.length; i++) {\n    if (seen.has(voucher - totals[i])) return [seen.get(voucher - totals[i]), i];\n    seen.set(totals[i], i);\n  }\n}\n",
+    },
+    cases: [
+      { input: { totals: "[120,450,80,300]", voucher: "380" }, expected: "[2,3]", explanation: "80 + 300." },
+      { input: { totals: "[5,5]", voucher: "10" }, expected: "[0,1]", explanation: "Two different orders with the same total." },
+      { input: { totals: "[1,9,4]", voucher: "13" }, expected: "[1,2]", explanation: "9 + 4." },
+    ],
+  },
+  {
+    id: "q-busiest-hour", title: "Busiest Hour From Delivery Timestamps", topic: "Coding", type: "Data Structures & Algorithms",
+    difficulty: "Medium", seniority: "Mid Level", role: "Data Engineer", jobType: "Full-time", round: "Onsite", locked: false,
+    statement: "Given delivery timestamps in minutes since midnight, return the start minute of the 60-minute window that contains the most deliveries. If several windows tie, return the earliest.",
+    constraints: ["1 <= times.length <= 100,000", "0 <= times[i] < 1,440", "times may be unsorted"],
+    examples: [{ input: "times = [5, 30, 64, 70, 90]", output: "30", explanation: "Window 30-89 holds 30, 64, 70." }],
+    tips: ["What they are testing: sorting plus a sliding window.", "Common mistake: an off-by-one on the window end."],
+    approach: [
+      { title: "Sort the timestamps", body: "A sorted list lets two pointers describe every window." },
+      { title: "Slide the window", body: "Advance the left pointer while times[right] - times[left] >= 60, and track the best count." },
+    ],
+    starter: {
+      python: "class Solution:\n    def busiestHour(self, times: list[int]) -> int:\n        # Write your code here\n        pass\n",
+      javascript: "/**\n * @param {number[]} times\n * @return {number}\n */\nfunction busiestHour(times) {\n  // Write your code here\n}\n",
+      java: "class Solution {\n    public int busiestHour(int[] times) {\n        // Write your code here\n        return 0;\n    }\n}\n",
+    },
+    solution: {
+      python: "class Solution:\n    def busiestHour(self, times):\n        times = sorted(times)\n        best, start, left = 0, times[0], 0\n        for right, t in enumerate(times):\n            while t - times[left] >= 60:\n                left += 1\n            if right - left + 1 > best:\n                best, start = right - left + 1, times[left]\n        return start\n",
+    },
+    cases: [
+      { input: { times: "[5,30,64,70,90]" }, expected: "30", explanation: "Three deliveries from minute 30." },
+      { input: { times: "[100]" }, expected: "100", explanation: "Single delivery." },
+      { input: { times: "[0,59,60]" }, expected: "0", explanation: "Tie broken by earliest window." },
+    ],
+  },
+);
 
-// Every company gets 2 readable samples (rotated from the pool) plus locked placeholders with no real content.
+// Every company shows all six sample questions, rotated so each starts differently. Nothing is locked in this demo.
 export function questionsFor(slug: string): Question[] {
   const i = Math.max(0, companies.findIndex((c) => c.slug === slug));
-  const free = [full[i % full.length], full[(i + 1) % full.length]].map((q) => ({ ...q, updated: "2d ago" }));
-  const locked = lockedShapes.map((s, k) => ({
-    ...s, id: `${slug}-locked-${k}`, title: "Locked question", difficulty: "Medium" as const,
-    jobType: "Full-time", updated: `${(k + 1) * 9}d ago`, locked: true,
-  }));
-  return [...free, ...locked];
+  return full.map((_, k) => ({ ...full[(i + k) % full.length], updated: `${k + 2}d ago` }));
 }
 
+export const TOPICS = [...new Set(full.map((q) => q.type))];
+export const SENIORITIES = ["Entry Level", "Mid Level", "Senior Level"];
+
+export type Status = "Not Started" | "In Progress" | "Completed";
 export const ticker = companies.slice(0, 8).map((c, k) => `${c.name} · ${["Coding", "System Design", "Behavioral"][k % 3]} · ${k + 1}d ago`);
 
-export type Status = "Not Started" | "In Progress";
 const STATUS_KEY = "cm-practice-status";
 export const readStatus = (): Record<string, Status> => {
   try { return JSON.parse(demoStore.getItem(STATUS_KEY) || "{}"); } catch { return {}; }
