@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { Bell, CreditCard, FileText, LogOut, MessagesSquare, Pencil, User } from "lucide-react";
 import { Modal, UpgradePill } from "./ui";
 import { useApp } from "./app-state";
+import { RestartDemoButton } from "./demo-gate";
 import { user } from "@/mocks/user";
+import { demoStore } from "@/lib/demo";
+import { toast } from "./toast";
 
 const sections = [
   { key: "Login & Security", icon: User },
@@ -42,7 +45,7 @@ export function SettingsModal() {
   const [freq, setFreq] = useState<"Daily" | "Weekly">("Daily");
   const [saved, setSaved] = useState(false);
   const close = () => setSettingsOpen(false);
-  const logout = () => { localStorage.removeItem("cm-session"); close(); router.push("/signin"); };
+  const logout = () => { demoStore.removeItem("cm-session"); close(); router.push("/signin"); };
   const navBtn = "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-left transition-colors";
 
   return (
@@ -55,6 +58,7 @@ export function SettingsModal() {
           <div className="mt-auto pt-6">
             <Link href="/privacy-policy" onClick={close} className={`${navBtn} hover:bg-neutral-50`}><FileText className="h-4 w-4" />Privacy Policy</Link>
             <button onClick={logout} className={`${navBtn} hover:bg-neutral-50`}><LogOut className="h-4 w-4" />Log Out</button>
+            <RestartDemoButton className={`${navBtn} text-accent hover:bg-accent-tint`} />
           </div>
         </nav>
 
@@ -89,7 +93,7 @@ export function SettingsModal() {
               <div className="rounded-2xl border border-dashed border-line p-5 text-center">
                 <p className="text-sm font-semibold">Not seeing your updated subscription?</p>
                 <p className="mt-1 text-sm text-neutral-600">If you paid but don&apos;t see the new plan, refresh it or contact support.</p>
-                <div className="mt-3 flex justify-center gap-2"><button className="pill-ghost">Refresh Status</button><a href="mailto:support@careermonke.com" className="pill-ghost">Contact Support</a></div>
+                <div className="mt-3 flex justify-center gap-2"><button className="pill-ghost">Refresh Status</button><button onClick={() => toast("Demo: support messages aren’t sent.")} className="pill-ghost">Contact Support</button></div>
               </div>
             </div>
           )}

@@ -2,28 +2,32 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Flag, Lock, Play, Search, ShieldCheck, X } from "lucide-react";
+import { Flag, Play, Search, ShieldCheck, X } from "lucide-react";
 import { PageHeader } from "../shell";
-import { CompanyLogo, EmptyState, UpgradePill } from "../ui";
+import { CompanyLogo, EmptyState } from "../ui";
 import { QuestionCard } from "./question-card";
 import { QuestionArticle, Tags } from "./question-article";
 import { toast } from "../toast";
-import { questionsFor, readStatus, type Company, type Status } from "@/mocks/interview";
+import { questionsFor, readStatus, SENIORITIES, TOPICS, type Company, type Question, type Status } from "@/mocks/interview";
 
 export const LimitedPill = ({ dark }: { dark?: boolean }) => (
-  <Link href="/pricing" className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs ${dark ? "bg-blue-200 text-ink" : "bg-accent-tint text-accent"}`}>
-    <Lock className="h-3 w-3" />Limited Access · <b>Unlock Full Access Now</b>
-  </Link>
+  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs ${dark ? "bg-blue-200 text-ink" : "bg-accent-tint text-accent"}`} title="On the real product this is a Pro feature">
+    Pro feature · unlocked in this demo
+  </span>
 );
 
-export function LockedFilters({ dark }: { dark?: boolean }) {
+export type QFilter = { topic: string; seniority: string };
+export const applyQFilter = (list: Question[], f: QFilter, q: string) =>
+  list.filter((x) => (!f.topic || x.type === f.topic) && (!f.seniority || x.seniority === f.seniority) && (!q.trim() || `${x.title} ${x.type} ${x.topic}`.toLowerCase().includes(q.trim().toLowerCase())));
+
+export function QuestionFilters({ f, set, dark }: { f: QFilter; set: (f: QFilter) => void; dark?: boolean }) {
+  const cls = `rounded-lg border px-2.5 py-1.5 text-sm ${dark ? "border-white/15 bg-[#1f1f1f]" : "border-line bg-white"}`;
   return (
     <>
-      {["Topic", "Seniority"].map((f) => (
-        <Link key={f} href="/pricing" aria-label={`${f} filter, upgrade to unlock`} className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-sm ${dark ? "border-white/15" : "border-line"}`}>
-          <Lock className="h-3.5 w-3.5" />{f}<ChevronDown className="h-3.5 w-3.5" />
-        </Link>
-      ))}
+      <label className="sr-only" htmlFor={`topic-${dark ? "d" : "l"}`}>Topic</label>
+      <select id={`topic-${dark ? "d" : "l"}`} value={f.topic} onChange={(e) => set({ ...f, topic: e.target.value })} className={cls}><option value="">All topics</option>{TOPICS.map((t) => <option key={t}>{t}</option>)}</select>
+      <label className="sr-only" htmlFor={`sen-${dark ? "d" : "l"}`}>Seniority</label>
+      <select id={`sen-${dark ? "d" : "l"}`} value={f.seniority} onChange={(e) => set({ ...f, seniority: e.target.value })} className={cls}><option value="">All levels</option>{SENIORITIES.map((t) => <option key={t}>{t}</option>)}</select>
     </>
   );
 }
@@ -37,12 +41,13 @@ export function CompanyBrowser({ company }: { company: Company }) {
   const [status, setStatusMap] = useState<Record<string, Status>>({});
   useEffect(() => setStatusMap(readStatus()), []);
 
-  const list = all.filter((x) => !q.trim() || (!x.locked && `${x.title} ${x.type} ${x.topic}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const [qf, setQf] = useState<QFilter>({ topic: "", seniority: "" });
+  const list = applyQFilter(all, qf, q);
   const active = all.find((x) => x.id === activeId);
 
   return (
     <>
-      <PageHeader title="INTERVIEW" right={<UpgradePill>Upgrade to Unlock Interview Questions</UpgradePill>}>
+      <PageHeader title="INTERVIEW" right={<span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-semibold text-accent">Pro feature · unlocked in this demo</span>}>
         <Link href="/interview" className="text-sm">Browse Companies</Link>
       </PageHeader>
       <div className="mx-auto max-w-7xl p-4 md:p-6">
@@ -55,10 +60,10 @@ export function CompanyBrowser({ company }: { company: Company }) {
             <CompanyLogo initials={initials(company.name)} color={company.color} size={40} />
             <h1 className="text-2xl font-semibold">{company.name}</h1>
             <LimitedPill />
-            <p className="ml-auto text-sm"><b className="text-lg">{company.questions}</b> Questions · Updated {company.updated}</p>
+            <p className="ml-auto text-sm"><b className="text-lg">{company.questions}</b> Questions · Updated {company.updated}<span className="block text-xs text-neutral-500">Showing {all.length} sample questions in this demo</span></p>
           </div>
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-            <LockedFilters />
+            <QuestionFilters f={qf} set={setQf} />
             <label className="ml-auto flex w-full items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 text-sm sm:w-72">
               <Search className="h-4 w-4 text-neutral-500" /><span className="sr-only">Search questions</span>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by question keywords" className="w-full bg-transparent outline-none" />
@@ -67,7 +72,7 @@ export function CompanyBrowser({ company }: { company: Company }) {
           <div className="grid lg:grid-cols-[340px_1fr]">
             <nav aria-label="Questions" className="max-h-[70vh] overflow-auto border-line lg:border-r">
               {list.length ? list.map((x) => <QuestionCard key={x.id} q={x} active={x.id === activeId} status={status[x.id] ?? "Not Started"} onOpen={() => setActiveId(x.id)} />)
-                : <p className="p-6 text-center text-sm text-neutral-500">No readable questions match &quot;{q}&quot;.</p>}
+                : <p className="p-6 text-center text-sm text-neutral-500">No sample questions match these filters.</p>}
             </nav>
             <article className="min-w-0 p-5 md:p-8">
               {active && !active.locked ? (

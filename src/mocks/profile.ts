@@ -1,4 +1,5 @@
 import { user } from "./user";
+import { demoStore } from "@/lib/demo";
 
 export type Personal = {
   first: string; middle: string; last: string; email: string; phoneType: string; phoneCode: string; phone: string;
@@ -91,6 +92,6 @@ export const EEO_COUNTRIES: Record<string, Question[]> = {
 
 const KEY = "cm-profile";
 export const readProfile = (): Profile => {
-  try { return { ...seedProfile, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return seedProfile; }
+  try { return { ...seedProfile, ...JSON.parse(demoStore.getItem(KEY) || "{}") }; } catch { return seedProfile; }
 };
-export const saveProfile = (p: Profile) => localStorage.setItem(KEY, JSON.stringify(p));
+export const saveProfile = (p: Profile) => demoStore.setItem(KEY, JSON.stringify(p));

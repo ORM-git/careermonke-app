@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { demoStore } from "@/lib/demo";
 
 export type AppStatus = "Applied" | "Interviewing" | "Offer Received" | "Rejected" | "Archived";
-type Applied = { id: string; status: AppStatus; date: string };
+type Applied = { id: string; status: AppStatus; date: string; sample?: boolean };
 type External = { url: string; title: string; date: string };
 
 type State = {
@@ -17,21 +18,24 @@ type State = {
 const Ctx = createContext<State | null>(null);
 export const useApp = () => useContext(Ctx)!;
 
-// Mock persistence: one localStorage key so a refresh keeps liked/applied jobs.
+// Visit-scoped mock state (lib/demo.ts): a reload starts the walkthrough fresh.
 const KEY = "cm-dummy-state";
+// Each visit starts with one labelled sample application so tracker stages can be tried right away.
+export const SEEDED_APPLICATION: Applied = { id: "2", status: "Interviewing", date: "18 Nov", sample: true };
+const fresh = () => ({ liked: [] as string[], applied: [SEEDED_APPLICATION], external: [] as External[], hidden: [] as string[] });
 const today = () => new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<{ liked: string[]; applied: Applied[]; external: External[]; hidden: string[] }>({ liked: [], applied: [], external: [], hidden: [] });
+  const [data, setData] = useState<{ liked: string[]; applied: Applied[]; external: External[]; hidden: string[] }>(fresh);
   const [loaded, setLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
 
   useEffect(() => {
-    try { const s = localStorage.getItem(KEY); if (s) setData({ hidden: [], ...JSON.parse(s) }); } catch { /* corrupt mock state: start fresh */ }
+    try { const s = demoStore.getItem(KEY); if (s) setData({ hidden: [], ...JSON.parse(s) }); } catch { /* corrupt mock state: start fresh */ }
     setLoaded(true);
   }, []);
-  useEffect(() => { if (loaded) localStorage.setItem(KEY, JSON.stringify(data)); }, [data, loaded]);
+  useEffect(() => { if (loaded) demoStore.setItem(KEY, JSON.stringify(data)); }, [data, loaded]);
 
   const value: State = {
     ...data,

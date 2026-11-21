@@ -1,8 +1,9 @@
 import "@testing-library/jest-dom/vitest";
+import { demoStore } from "@/lib/demo";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 
-afterEach(() => { cleanup(); localStorage.clear(); });
+afterEach(() => { cleanup(); demoStore.clear(); });
 
 // jsdom has no layout engine: stub the scroll API the anchor navigation uses.
 Element.prototype.scrollIntoView = vi.fn();

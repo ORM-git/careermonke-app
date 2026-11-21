@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { demoStore } from "@/lib/demo";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AppStateProvider } from "@/components/app-state";
@@ -7,9 +8,9 @@ import { JobDetail } from "@/components/jobs/job-detail";
 import { jobs } from "@/mocks/jobs";
 
 const job = jobs[8];
-const appState = () => JSON.parse(localStorage.getItem("cm-dummy-state") || "{}");
+const appState = () => JSON.parse(demoStore.getItem("cm-dummy-state") || "{}");
 
-beforeEach(() => { localStorage.setItem("cm_cover_tour_done", "1"); });
+beforeEach(() => { demoStore.setItem("cm_cover_tour_done", "1"); });
 const renderDetail = () => render(<AppStateProvider><JobDetail job={job} /><Toaster /></AppStateProvider>);
 
 describe("Job detail", () => {
@@ -44,29 +45,48 @@ describe("Job detail", () => {
     expect(screen.queryByRole("dialog", { name: "Report this job" })).not.toBeInTheDocument();
   });
 
-  it("Apply opens the employer URL safely and 'No' records nothing", async () => {
-    const open = vi.spyOn(window, "open").mockReturnValue(null);
-    renderDetail();
+  // Returning from the local simulated application always asks once; only Yes records it.
+  const applyAndReturn = async () => {
     await userEvent.click(screen.getByRole("button", { name: /APPLY/ }));
-    expect(open).toHaveBeenCalledWith(job.applyUrl, "_blank", "noopener,noreferrer");
-    expect(screen.queryByRole("dialog", { name: "Did you apply?" })).not.toBeInTheDocument();
-    act(() => { window.dispatchEvent(new Event("focus")); });
-    await userEvent.click(within(screen.getByRole("dialog", { name: "Did you apply?" })).getByRole("button", { name: /No, I didn/ }));
-    expect(appState().applied ?? []).toHaveLength(0);
+    expect(screen.getByText(/Simulated employer form/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Back to CareerMonke" }));
+    return screen.getByRole("dialog", { name: "Did you apply?" });
+  };
+  const mine = () => ((appState().applied ?? []) as { id: string; sample?: boolean }[]).filter((x) => !x.sample);
+
+  it("Apply stays inside the demo (no window.open) and 'No' records nothing", async () => {
+    const open = vi.spyOn(window, "open");
+    renderDetail();
+    const ask = await applyAndReturn();
+    expect(open).not.toHaveBeenCalled();
+    await userEvent.click(within(ask).getByRole("button", { name: /No, I didn/ }));
+    expect(mine()).toHaveLength(0);
   });
 
-  it("closing 'Did you apply?' records nothing; 'Yes' records one application", async () => {
-    vi.spyOn(window, "open").mockReturnValue(null);
+  it("closing 'Did you apply?' records nothing; 'Yes' records exactly one application", async () => {
+    renderDetail();
+    await userEvent.click(within(await applyAndReturn()).getByRole("button", { name: "Close" }));
+    expect(mine()).toHaveLength(0);
+    await userEvent.click(within(await applyAndReturn()).getByRole("button", { name: "Yes, I applied!" }));
+    expect(mine()).toEqual([expect.objectContaining({ id: job.id, status: "Applied" })]);
+    expect(screen.getByRole("button", { name: "APPLIED" })).toBeInTheDocument();
+  });
+
+  it("the simulated form autofills from the sample profile and only simulates submission", async () => {
     renderDetail();
     await userEvent.click(screen.getByRole("button", { name: /APPLY/ }));
-    act(() => { window.dispatchEvent(new Event("focus")); });
-    await userEvent.click(within(screen.getByRole("dialog", { name: "Did you apply?" })).getByRole("button", { name: "Close" }));
-    expect(appState().applied ?? []).toHaveLength(0);
+    await screen.findByText(/Autofill complete/, {}, { timeout: 4000 });
+    expect(screen.getByLabelText("Email")).toHaveValue("aarav.demo@careermonke.com");
+    await userEvent.click(screen.getByRole("button", { name: "Submit (simulated)" }));
+    expect(screen.getByText("Simulated submission complete")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Return to CareerMonke" }));
+    expect(screen.getByRole("dialog", { name: "Did you apply?" })).toBeInTheDocument();
+  });
 
-    await userEvent.click(screen.getByRole("button", { name: /APPLY/ }));
-    act(() => { window.dispatchEvent(new Event("focus")); });
-    await userEvent.click(screen.getByRole("button", { name: "Yes, I applied!" }));
-    expect(appState().applied).toEqual([expect.objectContaining({ id: job.id, status: "Applied" })]);
+  it("match score and H1B status are the same data the card uses", () => {
+    renderDetail();
+    expect(screen.getByLabelText(`Match score ${job.match}%`)).toBeInTheDocument();
+    expect(screen.getByText(job.h1b ? "H1B Sponsor Likely" : "No H1B")).toBeInTheDocument();
   });
 
   it("revealing an email asks before using a credit, and Cancel uses none", async () => {
@@ -100,10 +120,10 @@ describe("Job detail", () => {
   });
 
   it("cover letter coachmark shows once on first visit", async () => {
-    localStorage.removeItem("cm_cover_tour_done");
+    demoStore.removeItem("cm_cover_tour_done");
     renderDetail();
     const tip = screen.getByRole("dialog", { name: "Stand Out Among Applicants" });
     await userEvent.click(within(tip).getByRole("button", { name: "EXIT" }));
-    expect(localStorage.getItem("cm_cover_tour_done")).toBe("1");
+    expect(demoStore.getItem("cm_cover_tour_done")).toBe("1");
   });
 });

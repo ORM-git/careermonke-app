@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SimulatedApplication } from "./simulated-application";
+import { useGuideAction } from "../guide";
 import { ArrowUpRight, BriefcaseBusiness, CircleCheck, CircleX, Flag, MoreHorizontal, Share2 } from "lucide-react";
 import { Modal } from "../ui";
 import { toast } from "../toast";
@@ -14,28 +16,23 @@ export const shareJob = async (id: string) => {
 };
 
 /**
- * Opens the employer's posting in a new tab, then asks "Did you apply?" when the user comes back.
- * Only an explicit "Yes" records an application; "No" and closing record nothing.
+ * Opens a local simulated employer form (nothing leaves the demo). Returning from it always asks
+ * "Did you apply?" once for that attempt. Only an explicit "Yes" records the application.
  */
-export function ApplyButton({ job, className = "pill-accent" }: { job: Job; className?: string }) {
+export function ApplyButton({ job, className = "pill-accent", guided = false }: { job: Job; className?: string; guided?: boolean }) {
   const { apply, applied } = useApp();
-  const [ask, setAsk] = useState(false);
-  const waiting = useRef(false);
+  const [stage, setStage] = useState<"idle" | "form" | "ask">("idle");
+  const ask = stage === "ask";
   const done = applied.some((a) => a.id === job.id);
+  const setAsk = (v: boolean) => setStage(v ? "ask" : "idle");
+  useGuideAction(guided ? "apply" : "-", () => setStage("form"));
 
-  useEffect(() => {
-    const back = () => { if (waiting.current && document.visibilityState === "visible") { waiting.current = false; setAsk(true); } };
-    window.addEventListener("focus", back);
-    document.addEventListener("visibilitychange", back);
-    return () => { window.removeEventListener("focus", back); document.removeEventListener("visibilitychange", back); };
-  }, []);
-
-  const go = () => { waiting.current = true; window.open(job.applyUrl, "_blank", "noopener,noreferrer"); };
   return (
     <>
-      <button onClick={go} title="Opens the employer's application page in a new tab" className={done ? "pill-ghost" : className}>
+      <button onClick={() => setStage("form")} title="Opens a simulated application inside this demo" className={done ? "pill-ghost" : className}>
         {done ? "APPLIED" : <>APPLY <ArrowUpRight className="h-4 w-4" /></>}
       </button>
+      {stage === "form" && <SimulatedApplication job={job} onReturn={() => setStage("ask")} />}
       <Modal open={ask} onClose={() => setAsk(false)} title="Did you apply?">
         <div className="flex flex-col items-center gap-3 p-8 text-center">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100"><BriefcaseBusiness className="h-7 w-7" /></span>

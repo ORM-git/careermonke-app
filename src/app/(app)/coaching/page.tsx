@@ -1,10 +1,21 @@
+"use client";
+
+import { useState } from "react";
 import { ArrowRight, Check, FileSearch, GraduationCap, MessagesSquare } from "lucide-react";
 import { PageHeader } from "@/components/shell";
+import { CoachFlow, COACH_GOAL_KEY } from "@/components/coach-flow";
+import { useGuideAction } from "@/components/guide";
+import { demoStore } from "@/lib/demo";
 import { coachSteps, situations } from "@/mocks/misc";
 
 const icons = [GraduationCap, FileSearch, MessagesSquare];
 
 export default function CoachingPage() {
+  const [open, setOpen] = useState<number | null>(null);
+  const saved = demoStore.getItem(COACH_GOAL_KEY);
+  const meet = (i: number) => { demoStore.setItem(COACH_GOAL_KEY, String(i)); setOpen(i); };
+  useGuideAction("coach-flow", () => meet(saved ? Number(saved) : 0));
+
   return (
     <>
       <PageHeader title="COACHING" right={<span />}><span className="border-b-2 border-ink text-[15px] font-medium">Discover</span></PageHeader>
@@ -17,11 +28,11 @@ export default function CoachingPage() {
           <h3 className="text-center text-xl">Where do you need the most help?</h3>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {situations.map((s, i) => { const Icon = icons[i]; return (
-              <div key={s.title} className="flex flex-col items-center rounded-xl bg-white p-6 text-center">
+              <div key={s.title} className={`flex flex-col items-center rounded-xl bg-white p-6 text-center ${saved === String(i) ? "ring-2 ring-accent" : ""}`}>
                 <Icon className="h-12 w-12 stroke-[1.25]" aria-hidden="true" />
                 <h4 className="mt-4 text-lg font-semibold">{s.title}</h4>
                 <p className="mt-1 flex-1 text-sm text-neutral-600">{s.text}</p>
-                <button className="pill mt-4 bg-accent-tint text-ink hover:bg-blue-100">Meet My Coach <ArrowRight className="h-4 w-4" /></button>
+                <button onClick={() => meet(i)} className="pill mt-4 bg-accent-tint text-ink hover:bg-blue-100">Meet My Coach <ArrowRight className="h-4 w-4" /></button>
               </div>
             ); })}
           </div>
@@ -38,6 +49,7 @@ export default function CoachingPage() {
           </ol>
         </div>
       </div>
+      {open !== null && <CoachFlow initialGoal={open} onClose={() => setOpen(null)} />}
     </>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCard, OnboardingShell, Req } from "@/components/onboarding-shell";
-import { countries, jobFunctions, jobTypes, savePrefs } from "@/mocks/onboarding";
+import { countries, jobFunctions, jobTypes, readPrefs, savePrefs } from "@/mocks/onboarding";
+import { startSession } from "@/lib/demo";
 
 export default function RolePage() {
   const router = useRouter();
@@ -13,6 +14,9 @@ export default function RolePage() {
   const [remote, setRemote] = useState(true);
   const [h1b, setH1b] = useState(false);
   const [tried, setTried] = useState(false);
+  // Reaching onboarding starts this visit's demo session; earlier answers in the same visit are kept.
+  useEffect(() => { startSession(); const p = readPrefs(); if (p) { setFn(p.jobFunction ?? ""); setTypes(p.jobTypes ?? ["Full-time"]); setLocation(p.location ?? ""); setRemote(p.openToRemote ?? true); setH1b(!!p.h1b); } }, []);
+  const preset = () => { setFn("Software Engineer"); setLocation("India"); };
   const errors = { fn: !fn.trim(), types: types.length === 0, location: !countries.includes(location) };
   const toggle = (t: string, on: boolean) => setTypes((ts) => (on ? [...ts, t] : ts.filter((x) => x !== t)));
 
@@ -30,6 +34,7 @@ export default function RolePage() {
       footer={<button onClick={next} className="pill-dark w-40 py-2.5 text-base">Next</button>}
     >
       <div className="space-y-8 pt-8">
+        <p className="flex flex-wrap items-center gap-2 rounded-lg bg-accent-tint px-3 py-2 text-sm">Just exploring? <button type="button" onClick={preset} className="font-semibold text-accent underline">Use the sample answers</button> (Software Engineer in India).</p>
         <div>
           <Req><label htmlFor="fn">Job Function</label></Req>
           <input id="fn" list="fn-list" value={fn} onChange={(e) => setFn(e.target.value)} placeholder="Please select/enter your expected job function" className="input border-transparent" />

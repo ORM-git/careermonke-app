@@ -5,6 +5,9 @@ import { CircleHelp, MoreHorizontal, Plus, Star } from "lucide-react";
 import { PageHeader } from "@/components/shell";
 import { EmptyState } from "@/components/ui";
 import { UploadModal } from "@/components/resume-upload";
+import { ResumeCompare } from "@/components/jobs/rail";
+import { guideJobId, useGuideAction } from "@/components/guide";
+import { getJob } from "@/mocks/jobs";
 import { resumes as seed, type Resume } from "@/mocks/misc";
 
 const SLOTS = 5;
@@ -13,6 +16,8 @@ export default function ResumePage() {
   const [menu, setMenu] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [compare, setCompare] = useState(false);
+  useGuideAction("resume-compare", () => setCompare(true));
   const full = list.length >= SLOTS;
 
   const add = (f: File) => {
@@ -74,6 +79,7 @@ export default function ResumePage() {
         )}
       </div>
       <UploadModal open={uploading} onClose={() => setUploading(false)} onFile={add} />
+      {compare && <ResumeCompare job={getJob(guideJobId())!} onClose={() => setCompare(false)} />}
     </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { CircleCheck, CircleX, CircleAlert, ChevronDown, Lightbulb, Linkedin, Pencil, Plus, Sparkles, ThumbsUp, X, Zap } from "lucide-react";
 import { Confirm, Drawer, Modal, MonkeAvatar } from "../ui";
 import { PlanBadge } from "../shell";
@@ -11,27 +11,15 @@ import { readProfile } from "@/mocks/profile";
 import { KEYS } from "@/mocks/onboarding";
 import type { Job } from "@/mocks/jobs";
 import type { SavedFilter } from "@/mocks/filters";
-
-export function UpgradeModal({ open, onClose, title, body, cta, children }: { open: boolean; onClose: () => void; title: string; body: React.ReactNode; cta: string; children?: React.ReactNode }) {
-  return (
-    <Modal open={open} onClose={onClose} title={title}>
-      <div className="flex flex-col items-center gap-3 p-8 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-accent to-sky-400"><Zap className="h-8 w-8 fill-white text-white" /></span>
-        <h2 className="text-2xl font-bold">{title}</h2>
-        <p className="text-sm text-neutral-600">{body}</p>
-        {children && <div className="w-full rounded-2xl bg-gradient-to-br from-accent-tint to-sky-50 p-5">{children}</div>}
-        <Link href="/pricing" className="pill-accent mt-2 w-full rounded-lg py-3">{cta}</Link>
-      </div>
-    </Modal>
-  );
-}
+import { demoStore, subscribeDemo } from "@/lib/demo";
 
 /* ---------- Resume comparison (step 1 only; later steps were not observed and are not built) ---------- */
 export const CREDITS_TODAY = 2;
 
 export function ResumeCompare({ job, onClose }: { job: Job; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
-  const [asking, setAsking] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [picked, setPicked] = useState<string[]>([]);
   const skills = readProfile().skills.map((s) => s.toLowerCase());
   useEffect(() => { const t = setTimeout(() => setLoading(false), 1500); return () => clearTimeout(t); }, []);
   const matched = job.skills.filter((s) => skills.includes(s.toLowerCase()));
@@ -48,8 +36,8 @@ export function ResumeCompare({ job, onClose }: { job: Job; onClose: () => void 
       header={(
         <ol className="flex items-center justify-center gap-3 py-3 text-sm" aria-label="Steps">
           {steps.map((s, i) => (
-            <li key={s} aria-current={i === 0 ? "step" : undefined} className={`flex items-center gap-2 ${i === 0 ? "font-medium" : "text-neutral-400"}`}>
-              <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs text-white ${i === 0 ? "bg-accent" : "bg-neutral-400"}`}>{i + 1}</span>{s}{i < 2 && <span className="ml-1 h-px w-10 bg-neutral-200" />}
+            <li key={s} aria-current={i === stage ? "step" : undefined} className={`flex items-center gap-2 ${i <= stage ? "font-medium" : "text-neutral-400"}`}>
+              <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs text-white ${i <= stage ? "bg-accent" : "bg-neutral-400"}`}>{i + 1}</span>{s}{i < 2 && <span className="ml-1 h-px w-10 bg-neutral-200" />}
             </li>
           ))}
         </ol>
@@ -61,6 +49,9 @@ export function ResumeCompare({ job, onClose }: { job: Job; onClose: () => void 
           <p className="mt-6 font-semibold">Analyzing Your Resume...</p>
           <p className="mt-3 text-sm text-neutral-600">Please keep this window open. This usually takes a few seconds.</p>
         </div>
+      ) : stage > 0 ? (
+        <SimulatedTailor job={job} stage={stage} missing={job.skills.filter((x) => !matched.includes(x))} picked={picked} setPicked={setPicked}
+          onBack={() => setStage(stage - 1)} onNext={() => { setStage(2); demoStore.setItem(RESUME_DEMO_KEY, "1"); }} onClose={onClose} />
       ) : (
         <div className="flex h-full flex-col">
           <div className="flex-1 overflow-auto p-4 md:p-6">
@@ -84,29 +75,69 @@ export function ResumeCompare({ job, onClose }: { job: Job; onClose: () => void 
               </table>
             </div>
           </div>
-          <div className="flex justify-center border-t border-line p-4"><button onClick={() => setAsking(true)} className="pill-accent px-8 py-3">Improve My Resume for This Job</button></div>
+          <div className="flex justify-center border-t border-line p-4"><button onClick={() => setStage(1)} className="pill-accent px-8 py-3">Improve My Resume for This Job</button></div>
         </div>
       )}
-      <Confirm open={asking} title="Use 1 resume credit?" confirmLabel="Use 1 credit" onCancel={() => setAsking(false)}
-        body={<>Generating a tailored resume uses 1 of your {CREDITS_TODAY} credits today.</>}
-        onConfirm={() => { setAsking(false); toast("Resume generation isn't connected in this demo yet, so no credit was used."); }} />
     </Drawer>
   );
 }
 
-/* ---------- Right rail ---------- */
-export const INSTALLED_KEY = "cm_autofill_installed";
+export const RESUME_DEMO_KEY = "cm_checklist_resume";
+export const AUTOFILL_DEMO_KEY = "cm_checklist_autofill";
 
-export function JobsRail({ saved, onEdit, onAutofill, onCustomize }: { saved: SavedFilter[]; onEdit: (id: string) => void; onAutofill: () => void; onCustomize: () => void }) {
+function SimulatedTailor({ job, stage, missing, picked, setPicked, onBack, onNext, onClose }: {
+  job: Job; stage: number; missing: string[]; picked: string[]; setPicked: (v: string[]) => void; onBack: () => void; onNext: () => void; onClose: () => void;
+}) {
+  const p = readProfile();
+  const banner = <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Simulated demo output. No credits were used and nothing was generated by AI.</p>;
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
+        {banner}
+        {stage === 1 ? (
+          <div className="card space-y-3 p-6">
+            <h2 className="text-xl font-semibold">Align your resume with {job.title}</h2>
+            <p className="text-sm text-neutral-600">Pick the job keywords you can honestly back up. Only those are added.</p>
+            {missing.length ? missing.map((k) => (
+              <label key={k} className="flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2 text-sm">
+                <input type="checkbox" checked={picked.includes(k)} onChange={(e) => setPicked(e.target.checked ? [...picked, k] : picked.filter((x) => x !== k))} className="h-4 w-4 accent-[#2563EB]" />I have experience with {k}
+              </label>
+            )) : <p className="text-sm">Your profile already covers every keyword for this job.</p>}
+          </div>
+        ) : (
+          <div className="card space-y-3 p-6 font-mono text-sm">
+            <p className="font-sans text-xl font-semibold">Sample tailored resume</p>
+            <p><b>{p.personal.first} {p.personal.last}</b> · {p.personal.city}</p>
+            <p><b>SUMMARY</b><br />{p.work[0]?.title ?? "Professional"} focused on {job.industryName.toLowerCase()} work, applying for {job.title} at {job.company}.</p>
+            <p><b>SKILLS</b><br />{[...new Set([...p.skills, ...picked])].join(" · ")}</p>
+            <p><b>EXPERIENCE</b><br />{p.work.map((w) => `${w.title}, ${w.company}`).join("\n")}</p>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-center gap-2 border-t border-line p-4">
+        <button onClick={onBack} className="pill-ghost">Back</button>
+        {stage === 1 ? <button onClick={onNext} className="pill-accent px-8">Review My New Resume</button> : <button onClick={onClose} className="pill-accent px-8">Done</button>}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Right rail ---------- */
+
+export function JobsRail({ saved, activeId, onSelect, onAdd, onEdit, onAutofill, onCustomize }: {
+  saved: SavedFilter[]; activeId: string; onSelect: (id: string) => void; onAdd: () => void; onEdit: (id: string) => void; onAutofill: () => void; onCustomize: () => void;
+}) {
   const [linkedin, setLinkedin] = useState(false);
   const [vote, setVote] = useState(false);
-  const [gate, setGate] = useState(false);
-  const [installed, setInstalled] = useState(false);
-  useEffect(() => { setLinkedin(!localStorage.getItem(KEYS.linkedin)); setInstalled(!!localStorage.getItem(INSTALLED_KEY)); }, []);
-  // Progress only counts real signals: item 1 needs a generated resume (not available yet); item 2 is the user's own "I've installed".
-  const done = [false, installed];
+  useEffect(() => { setLinkedin(!demoStore.getItem(KEYS.linkedin)); }, []);
+  // Each item completes only after its demo was actually run in this visit; Undo reverses it.
+  const resumeDone = useSyncExternalStore(subscribeDemo, () => !!demoStore.getItem(RESUME_DEMO_KEY), () => false);
+  const autofillDone = useSyncExternalStore(subscribeDemo, () => !!demoStore.getItem(AUTOFILL_DEMO_KEY), () => false);
+  const done = [resumeDone, autofillDone];
   const pct = Math.round((done.filter(Boolean).length / done.length) * 100);
   const answer = (msg: string) => { setVote(true); toast(msg); };
+  const Dot = ({ on }: { on: boolean }) => <span className={`flex h-4 w-4 items-center justify-center rounded-full border text-[10px] ${on ? "border-accent bg-accent text-white" : "border-line"}`}>{on && "✓"}</span>;
+  const Undo = ({ k }: { k: string }) => <button onClick={() => demoStore.removeItem(k)} className="mx-auto block text-xs underline">Mark as not done</button>;
 
   return (
     <aside className="space-y-5 lg:sticky lg:top-20">
@@ -115,13 +146,17 @@ export function JobsRail({ saved, onEdit, onAutofill, onCustomize }: { saved: Sa
         <p className="flex items-center gap-2 rounded-lg bg-neutral-100 px-3 py-2 text-[13px]">
           <Linkedin className="h-4 w-4 shrink-0 rounded-sm bg-ink p-0.5 text-white" />
           <Link href="/profile" className="flex-1 truncate hover:underline">Add LinkedIn for smarter job matches</Link>
-          <button aria-label="Dismiss" onClick={() => { localStorage.setItem(KEYS.linkedin, "1"); setLinkedin(false); }}><X className="h-4 w-4 text-neutral-500" /></button>
+          <button aria-label="Dismiss" onClick={() => { demoStore.setItem(KEYS.linkedin, "1"); setLinkedin(false); }}><X className="h-4 w-4 text-neutral-500" /></button>
         </p>
       )}
       <div className="border-t border-line pt-4">
-        <div className="flex items-center justify-between"><p className="font-semibold">Your Saved Filters</p><button aria-label="Add saved filter" onClick={() => setGate(true)}><Plus className="h-5 w-5 rounded-full bg-ink p-0.5 text-white" /></button></div>
+        <div className="flex items-center justify-between"><p className="font-semibold">Your Saved Filters</p><button aria-label="Add saved filter" title={saved.length >= 5 ? "Up to 5 saved filters" : undefined} disabled={saved.length >= 5} onClick={onAdd} className="disabled:opacity-40"><Plus className="h-5 w-5 rounded-full bg-ink p-0.5 text-white" /></button></div>
+        <p className="mt-1 text-xs text-neutral-500">Multiple filters are a Pro feature, unlocked in this demo (up to 5).</p>
         {saved.length ? saved.map((s) => (
-          <p key={s.id} className="mt-3 flex items-center justify-between border-l-2 border-ink pl-3 text-sm">{s.filter.title}<button aria-label={`Edit ${s.filter.title}`} onClick={() => onEdit(s.id)} className="rounded p-1 hover:bg-neutral-100"><Pencil className="h-4 w-4 text-neutral-500" /></button></p>
+          <p key={s.id} className={`mt-3 flex items-center justify-between border-l-2 pl-3 text-sm ${s.id === activeId ? "border-ink font-medium" : "border-neutral-200 text-neutral-500"}`}>
+            <button onClick={() => onSelect(s.id)} aria-pressed={s.id === activeId} className="truncate text-left">{s.filter.title}</button>
+            <button aria-label={`Edit ${s.filter.title}`} onClick={() => onEdit(s.id)} className="rounded p-1 hover:bg-neutral-100"><Pencil className="h-4 w-4 text-neutral-500" /></button>
+          </p>
         )) : <p className="mt-3 text-sm text-neutral-500">No saved filters.</p>}
       </div>
       <div className="rounded-2xl border-2 border-blue-200 bg-accent-tint p-1">
@@ -129,15 +164,15 @@ export function JobsRail({ saved, onEdit, onAutofill, onCustomize }: { saved: Sa
         <div className="space-y-2 rounded-xl bg-white p-3 text-sm">
           <div className="flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-neutral-100" role="progressbar" aria-label="Checklist progress" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="h-2 rounded-full bg-accent" style={{ width: `${pct}%` }} /></div><b className="text-lg">{pct}%</b></div>
           <details className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-2"><span className={`h-4 w-4 rounded-full border ${done[0] ? "border-accent bg-accent" : "border-line"}`} /><span className="flex-1">1. Customize Your Resume</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
-            <div className="ml-6 mt-1 space-y-2"><p className="text-xs text-neutral-600">Tailor your resume to any job and stand out to recruiters.</p><button onClick={onCustomize} className="pill-ghost w-full rounded-lg py-1.5">Try It Now</button></div>
+            <summary className="flex cursor-pointer list-none items-center gap-2"><Dot on={resumeDone} /><span className="flex-1">1. Customize Your Resume</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
+            <div className="ml-6 mt-1 space-y-2"><p className="text-xs text-neutral-600">Tailor your resume to any job and stand out to recruiters.</p><button onClick={onCustomize} className="pill-ghost w-full rounded-lg py-1.5">Try It Now</button>{resumeDone && <Undo k={RESUME_DEMO_KEY} />}</div>
           </details>
           <details className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-2"><span className={`flex h-4 w-4 items-center justify-center rounded-full border ${installed ? "border-accent bg-accent text-[10px] text-white" : "border-line"}`}>{installed && "✓"}</span><span className="flex-1">2. Enable Autofill Extension</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
+            <summary className="flex cursor-pointer list-none items-center gap-2"><Dot on={autofillDone} /><span className="flex-1">2. Enable Autofill Extension</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>
             <div className="ml-6 mt-1 space-y-2">
-              <p className="text-xs text-neutral-600">Fill out job applications in one click.</p>
-              <button onClick={onAutofill} className="pill-ghost w-full rounded-lg py-1.5">Enable Now</button>
-              {!installed && <button onClick={() => { localStorage.setItem(INSTALLED_KEY, "1"); setInstalled(true); }} className="mx-auto block text-xs underline">I&apos;ve installed</button>}
+              <p className="text-xs text-neutral-600">See a sample application autofill in one click (demo, no extension needed).</p>
+              <button onClick={onAutofill} className="pill-ghost w-full rounded-lg py-1.5">Try the Autofill demo</button>
+              {autofillDone && <Undo k={AUTOFILL_DEMO_KEY} />}
             </div>
           </details>
         </div>
@@ -151,11 +186,6 @@ export function JobsRail({ saved, onEdit, onAutofill, onCustomize }: { saved: Sa
           </div>
         </div>
       )}
-      <UpgradeModal open={gate} onClose={() => setGate(false)} title="Track multiple job searches at once" cta="Upgrade to Pro Now"
-        body={<>Save <b>up to 5 filters</b> for different roles, cities or salary ranges, with no re-entering your criteria.</>}>
-        <p className="mx-auto mb-3 w-fit rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">Available on Pro</p>
-        <div className="space-y-2 rounded-xl bg-white p-3 text-left text-sm">{["Product Manager, Remote", "Marketing Lead, Bengaluru", "Data Analyst + 2 roles, Pune"].map((t, i) => <p key={t} className={`border-l-2 pl-2 ${i ? "border-neutral-200 text-neutral-500" : "border-accent"}`}>{t}</p>)}</div>
-      </UpgradeModal>
     </aside>
   );
 }

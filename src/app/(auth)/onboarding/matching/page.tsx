@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Sparkles } from "lucide-react";
 import { featureHighlights, statusSentences } from "@/mocks/onboarding";
+import { demoStore } from "@/lib/demo";
 
 const DURATION = 8000;
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2); // easeInOutQuad
@@ -54,7 +55,7 @@ export default function MatchingPage() {
       const t = Math.min(1, (now - t0) / DURATION);
       setP(ease(t));
       if (t < 1) raf = requestAnimationFrame(step);
-      else router.push("/jobs?welcome=1");
+      else { demoStore.removeItem("cm-saved-filters"); router.push("/jobs?welcome=1"); } // fresh saved filter from these answers
     };
     raf = requestAnimationFrame(step);
     const a = setInterval(() => setLine((l) => Math.min(l + 1, statusSentences.length - 1)), 2500);
