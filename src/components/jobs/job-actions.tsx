@@ -35,7 +35,8 @@ export function ApplyButton({ job, className = "pill-accent", guided = false, wi
 
   return (
     <>
-      {withCustomize && <button onClick={() => setStage("flow")} className="pill-ghost"><FilePen className="h-4 w-4" />Customize Resume</button>}
+      {/* Icon-only below sm so APPLY fits a 320px action bar; the name stays for screen readers. */}
+      {withCustomize && <button onClick={() => setStage("flow")} className="pill-ghost max-sm:h-10 max-sm:w-10 max-sm:px-0"><FilePen className="h-4 w-4" /><span className="max-sm:sr-only">Customize Resume</span></button>}
       <button onClick={start} title="Opens a simulated application inside this demo" className={done ? "pill-ghost" : className}>
         {done ? "APPLIED" : <>APPLY <ArrowUpRight className="h-4 w-4" /></>}
       </button>

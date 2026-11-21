@@ -34,12 +34,14 @@ export function JobCard({ job, status, onAsk, extra }: { job: Job; status?: stri
                 <MatchRing value={job.breakdown.industry} size={48} stroke={3} label="Industry Experience" />
               </div>
               <ul className="mt-3 list-disc space-y-0.5 pl-5 text-sm text-neutral-600">{job.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+              <button onClick={() => setExpanded(false)} className="mt-3 min-h-11 text-sm font-semibold text-accent sm:hidden">Hide breakdown</button>
             </div>
           </div>
         ) : (
           <>
-            <div className="flex gap-4">
-              <CompanyLogo initials={job.initials} color={job.color} size={64} />
+            <div className="flex gap-3 sm:gap-4">
+              <span className="hidden sm:contents"><CompanyLogo initials={job.initials} color={job.color} size={64} /></span>
+              <span className="contents sm:hidden"><CompanyLogo initials={job.initials} color={job.color} size={44} /></span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1.5">
                   <span className="tag bg-neutral-100 text-neutral-700">{job.posted}</span>
@@ -47,9 +49,12 @@ export function JobCard({ job, status, onAsk, extra }: { job: Job; status?: stri
                   {status && <span className="tag">{status}</span>}
                   {customized[job.id] && <span className="tag bg-accent-tint text-accent">Resume customized (demo) · {customized[job.id].toFixed(1)}/10</span>}
                 </div>
-                <Link href={`/jobs/${job.id}`} className="mt-1 block truncate text-xl font-semibold hover:underline">{job.title}</Link>
+                <Link href={`/jobs/${job.id}`} className="mt-1 block truncate text-lg font-semibold hover:underline max-sm:line-clamp-2 max-sm:leading-snug max-sm:whitespace-normal sm:text-xl">{job.title}</Link>
                 <p className="truncate text-[13px] text-neutral-700">{job.company} <span className="text-neutral-400">/ {job.industry}</span></p>
               </div>
+              {/* Phones have no room for the match column: a compact score that opens the same breakdown. */}
+              <button onClick={() => setExpanded(true)} aria-label={`Match ${match}%, show breakdown`}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-accent text-xs font-bold text-accent sm:hidden">{match}%</button>
               <CardMenu job={job} />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-line pt-3 text-[13px] sm:grid-cols-3">

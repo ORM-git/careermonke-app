@@ -23,7 +23,17 @@ function Pop({ label, active, children }: { label: string; active: boolean; chil
     <div ref={ref} className="relative">
       <button type="button" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)} className={`chip ${active ? "chip-on" : ""}`}>{label}<ChevronDown className="h-3.5 w-3.5" /></button>
       {/* The body mounts fresh on every open, so each popover edits a new draft; closing without Confirm discards it. */}
-      {open && <div role="dialog" aria-label={`${label} filter`} className="animate-pop absolute left-0 top-11 z-30 w-[300px] space-y-3 rounded-2xl bg-white p-3 shadow-xl ring-1 ring-black/5">{children(() => setOpen(false))}</div>}
+      {/* Phones: a bottom sheet (fixed, so the scrolling chip row cannot clip it); from sm the original popover. */}
+      {open && <div className="fixed inset-0 z-40 bg-black/30 sm:hidden" aria-hidden="true" onClick={() => setOpen(false)} />}
+      {open && (
+        <div role="dialog" aria-label={`${label} filter`} className="animate-pop fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col gap-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl ring-1 ring-black/5 sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-11 sm:z-30 sm:max-h-none sm:w-[300px] sm:overflow-visible sm:rounded-2xl sm:p-3">
+          <div className="flex items-center justify-between sm:hidden">
+            <p className="font-semibold">{label}</p>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close filter" className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full hover:bg-neutral-100"><X className="h-5 w-5" /></button>
+          </div>
+          {children(() => setOpen(false))}
+        </div>
+      )}
     </div>
   );
 }
@@ -115,7 +125,7 @@ function ExpPop({ f, apply, close }: { f: Filter; apply: (p: Partial<Filter>) =>
 export function QuickFilters({ f, apply, onAllFilters, onHidden }: { f: Filter; apply: (p: Partial<Filter>) => void; onAllFilters: () => void; onHidden: () => void }) {
   const remoteLabel = (o: string) => (o === "Remote" ? `Remote anywhere${f.country ? ` in ${f.country === "United States" ? "the US" : f.country}` : ""}` : o);
   return (
-    <div data-tour="filters" className="flex flex-wrap items-center gap-2">
+    <div data-tour="filters" className="flex flex-wrap items-center gap-2 max-sm:-mx-4 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 max-sm:[&>*]:shrink-0">
       <Pop label={f.country || (f.locations[0] ?? "Any location")} active={!!f.country || !!f.locations.length}>{(c) => <LocationPop f={f} apply={apply} close={c} />}</Pop>
       <Pop label={more(f.jobFunctions, "Job Function")} active={!!f.jobFunctions.length}>{(c) => <FunctionPop f={f} apply={apply} close={c} />}</Pop>
       <Pop label={more(f.levels, "Experience Level")} active={!!f.levels.length}>{(c) => <ListPop title="Experience Level" options={LEVELS} initial={f.levels} apply={(levels) => apply({ levels })} close={c} />}</Pop>
