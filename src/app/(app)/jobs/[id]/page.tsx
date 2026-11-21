@@ -1,12 +1,9 @@
-"use client";
+import { jobs } from "@/mocks/jobs";
+import JobDetailView from "./view";
 
-import { notFound, useParams } from "next/navigation";
-import { JobDetail } from "@/components/jobs/job-detail";
-import { getJob } from "@/mocks/jobs";
+// Pre-build one page per mock job so the static export (GitHub Pages) has them.
+export const generateStaticParams = () => jobs.map((j) => ({ id: j.id }));
 
 export default function JobDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const job = getJob(id);
-  if (!job) notFound();
-  return <JobDetail key={job.id} job={job} />;
+  return <JobDetailView />;
 }

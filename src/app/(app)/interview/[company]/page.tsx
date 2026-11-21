@@ -1,12 +1,8 @@
-"use client";
+import { companies } from "@/mocks/interview";
+import CompanyView from "./view";
 
-import { notFound, useParams } from "next/navigation";
-import { CompanyBrowser } from "@/components/interview/company-browser";
-import { getCompany } from "@/mocks/interview";
+export const generateStaticParams = () => companies.map((c) => ({ company: c.slug }));
 
 export default function CompanyPage() {
-  const { company } = useParams<{ company: string }>();
-  const c = getCompany(company);
-  if (!c) notFound();
-  return <CompanyBrowser company={c} />;
+  return <CompanyView />;
 }

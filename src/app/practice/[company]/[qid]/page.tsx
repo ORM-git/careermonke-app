@@ -1,18 +1,10 @@
-"use client";
+import { companies, questionsFor } from "@/mocks/interview";
+import PracticeView from "./view";
 
-import { useEffect, useState } from "react";
-import { notFound, useParams, useRouter } from "next/navigation";
-import { PracticeMode } from "@/components/interview/practice-mode";
-import { getCompany } from "@/mocks/interview";
+// Only readable questions get a practice page; locked ones link to pricing.
+export const generateStaticParams = () =>
+  companies.flatMap((c) => questionsFor(c.slug).filter((q) => !q.locked).map((q) => ({ company: c.slug, qid: q.id })));
 
 export default function PracticePage() {
-  const { company, qid } = useParams<{ company: string; qid: string }>();
-  const router = useRouter();
-  const [ok, setOk] = useState(false);
-  // Practice mode sits outside the app shell, so it repeats the mock session check.
-  useEffect(() => { if (localStorage.getItem("cm-session")) setOk(true); else router.replace("/signin"); }, [router]);
-  const c = getCompany(company);
-  if (!c) notFound();
-  if (!ok) return null;
-  return <PracticeMode key={qid} company={c} questionId={qid} />;
+  return <PracticeView />;
 }

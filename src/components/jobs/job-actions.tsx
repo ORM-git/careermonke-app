@@ -8,7 +8,7 @@ import { useApp } from "../app-state";
 import type { Job } from "@/mocks/jobs";
 
 export const shareJob = async (id: string) => {
-  const url = `${location.origin}/jobs/${id}`;
+  const url = `${location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/jobs/${id}`;
   try { await navigator.clipboard.writeText(url); toast("Success! Link copied to clipboard."); }
   catch { toast(`Copy this link: ${url}`); }
 };
