@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, ChevronDown, Mic, Sparkles } from "lucide-react";
 import { Logo, Modal, MonkeAvatar } from "./ui";
 import { CheckCard } from "./onboarding-shell";
 import { toast } from "./toast";
 import { additionalFunctions, chatSuggestions, defaultLevels, experienceLevels, KEYS, matchCount, tourSteps } from "@/mocks/onboarding";
 import type { Job } from "@/mocks/jobs";
+import { readProfile } from "@/mocks/profile";
 
 /* ---------- Found-roles popup ---------- */
 export function WelcomePopup({ open, onConfirm }: { open: boolean; onConfirm: () => void }) {
@@ -49,8 +50,8 @@ export function WelcomePopup({ open, onConfirm }: { open: boolean; onConfirm: ()
 /* ---------- Tour ---------- */
 type Rect = { top: number; left: number; width: number; height: number };
 
-export function Tour({ step, onNext, onExit, onTry }: { step: number; onNext: () => void; onExit: () => void; onTry: () => void }) {
-  const s = tourSteps[step];
+export function Tour({ step, onNext, onExit, onTry, steps = tourSteps }: { step: number; onNext: () => void; onExit: () => void; onTry: () => void; steps?: { anchor: string; title: string; text: string }[] }) {
+  const s = steps[step];
   const [rect, setRect] = useState<Rect | null>(null);
   const [mobile, setMobile] = useState(false);
 
@@ -64,12 +65,16 @@ export function Tour({ step, onNext, onExit, onTry }: { step: number; onNext: ()
   useLayoutEffect(() => {
     document.querySelector(`[data-tour="${s.anchor}"]`)?.scrollIntoView({ block: "center" });
     measure();
+    // Re-measure once layout settles (sticky headers, late content) so the spotlight lands on the anchor.
+    const settle = setTimeout(measure, 350);
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
-    return () => { window.removeEventListener("resize", measure); window.removeEventListener("scroll", measure, true); };
+    return () => { clearTimeout(settle); ro.disconnect(); window.removeEventListener("resize", measure); window.removeEventListener("scroll", measure, true); };
   }, [measure, s.anchor]);
 
-  const last = step === tourSteps.length - 1;
+  const last = step === steps.length - 1;
   const card = (
     <div className="space-y-1">
       <p className="mb-2 flex items-center gap-2 font-semibold"><MonkeAvatar size={32} />Monke</p>
@@ -106,22 +111,47 @@ export function Tour({ step, onNext, onExit, onTry }: { step: number; onNext: ()
 }
 
 /* ---------- Assistant chat panel ---------- */
-const reply = (q: string, j: Job) =>
-  q.includes("good fit") ? `Your analytics work lines up with ${j.company}'s needs, and your SQL skills match ${j.breakdown.skills}% of the listing.`
+function FitReport({ j }: { j: Job }) {
+  const mine = readProfile().skills.map((s) => s.toLowerCase());
+  const have = j.skills.filter((s) => mine.includes(s.toLowerCase()));
+  const miss = j.skills.filter((s) => !mine.includes(s.toLowerCase()));
+  const Row = ({ ok, children }: { ok: boolean; children: React.ReactNode }) => <li className="flex gap-1.5"><span aria-hidden="true">{ok ? "✅" : "❌"}</span><span>{children}</span></li>;
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-neutral-500">Demo analysis from your profile and the job's listed skills.</p>
+      <div><p className="font-semibold">Relevant Experience</p><ul className="mt-1"><Row ok={j.breakdown.experience >= 60}>Your recent role overlaps with the day-to-day work described here.</Row></ul></div>
+      <div className="border-t border-line pt-3"><p className="font-semibold">Seniority</p><ul className="mt-1"><Row ok={j.expMin <= 2}>The role asks for {j.exp}; check your years in similar work.</Row></ul></div>
+      <div className="border-t border-line pt-3"><p className="font-semibold">Education</p><ul className="mt-1"><Row ok>No specific education requirement is stated.</Row></ul></div>
+      <div className="border-t border-line pt-3"><p className="font-semibold">Core Skills</p><ul className="mt-1 space-y-1">
+        {have.length > 0 && <Row ok>Aligned: {have.join(", ")}.</Row>}
+        {miss.length > 0 && <Row ok={false}>Not shown in your profile: {miss.join(", ")}.</Row>}
+      </ul></div>
+    </div>
+  );
+}
+
+export const FIT_PROMPT = "Analyze how well I fit this job.";
+const reply = (q: string, j: Job): React.ReactNode =>
+  q === FIT_PROMPT ? <FitReport j={j} />
+  : q.includes("good fit") ? `Your analytics work lines up with ${j.company}'s needs, and your SQL skills match ${j.breakdown.skills}% of the listing.`
   : q.includes("tips") ? "Lead with one quantified result, mirror 3 keywords from the job post, and keep it to one page."
   : q.includes("custom resume") ? `Done! I drafted a resume tailored to ${j.title}. Open the job and use "Customize Your Resume" to review it.`
   : q.includes("Connections") ? `I found 5 people at ${j.company}, including 1 former colleague. Open the job to see them.`
   : "Good question! This is a demo, so I can only answer the suggested questions for now.";
 
-export function ChatPanel({ job, onClose }: { job: Job; onClose: () => void }) {
-  const [msgs, setMsgs] = useState<{ me: boolean; text: string }[]>([]);
+export function ChatPanel({ job, onClose, initialAsk }: { job: Job; onClose: () => void; initialAsk?: string }) {
+  const [msgs, setMsgs] = useState<{ me: boolean; text: React.ReactNode }[]>([]);
   const [text, setText] = useState("");
+  const [thinking, setThinking] = useState(false);
   const ask = (q: string) => {
     if (!q.trim()) return;
     setMsgs((m) => [...m, { me: true, text: q }]);
     setText("");
-    setTimeout(() => setMsgs((m) => [...m, { me: false, text: reply(q, job) }]), 600);
+    setThinking(true);
+    setTimeout(() => { setMsgs((m) => [...m, { me: false, text: reply(q, job) }]); setThinking(false); }, 900);
   };
+  const asked = useRef(false);
+  useEffect(() => { if (initialAsk && !asked.current) { asked.current = true; ask(initialAsk); } });
   return (
     <aside aria-label="Monke assistant" className="animate-pop fixed inset-x-2 bottom-16 top-20 z-40 flex flex-col rounded-2xl border border-line bg-white shadow-2xl md:inset-x-auto md:bottom-4 md:right-4 md:w-[380px]">
       <div className="flex items-center justify-between px-4 py-3">
@@ -131,7 +161,8 @@ export function ChatPanel({ job, onClose }: { job: Job; onClose: () => void }) {
       <div className="flex-1 space-y-3 overflow-auto px-4">
         <p className="rounded-2xl bg-neutral-100 px-4 py-3 text-sm">I see that you&apos;re asking about this <b>{job.title}</b> role at <b>{job.company}</b>. What would you like to know?</p>
         {msgs.length === 0 && <div className="flex flex-col items-end gap-2">{chatSuggestions.map((s) => <button key={s} onClick={() => ask(s)} className="flex items-center gap-1 rounded-full bg-accent-tint px-3 py-1 text-xs hover:bg-blue-100">{s}<ArrowUp className="h-3 w-3" /></button>)}</div>}
-        {msgs.map((m, i) => <p key={i} className={`animate-pop max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.me ? "ml-auto bg-accent text-white" : "bg-neutral-100"}`}>{m.text}</p>)}
+        {msgs.map((m, i) => <div key={i} className={`animate-pop max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.me ? "ml-auto w-fit bg-accent text-white" : "bg-neutral-100"}`}>{m.text}</div>)}
+        {thinking && <p role="status" className="flex items-center gap-1 text-sm text-neutral-500">Thinking<span className="dot">.</span><span className="dot [animation-delay:.2s]">.</span><span className="dot [animation-delay:.4s]">.</span></p>}
       </div>
       <form onSubmit={(e) => { e.preventDefault(); ask(text); }} className="m-2 rounded-2xl border-2 border-blue-200 p-3">
         <label htmlFor="monke-ask" className="sr-only">Ask Monke</label>
