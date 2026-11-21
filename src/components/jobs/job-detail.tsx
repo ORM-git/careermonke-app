@@ -13,7 +13,8 @@ import { toast } from "../toast";
 import { useApp } from "../app-state";
 import { ChatPanel, FIT_PROMPT, Tour } from "../welcome-flow";
 import { ApplyButton, ReportModal, shareJob } from "./job-actions";
-import { CREDITS_TODAY, ResumeCompare } from "./rail";
+import { CREDITS_TODAY } from "./rail";
+import { ResumeCompare } from "./resume-customize";
 import { readProfile, saveProfile } from "@/mocks/profile";
 import type { Job } from "@/mocks/jobs";
 import { user } from "@/mocks/user";
@@ -214,7 +215,7 @@ export function JobDetail({ job }: { job: Job }) {
             <div className="ml-auto flex items-center gap-1">
               <button aria-label="Not interested" title="Not interested" onClick={() => { hide(job.id); toast("We'll show fewer jobs like this"); router.push("/jobs"); }} className="rounded-full p-2 hover:bg-neutral-100"><Ban className="h-5 w-5" /></button>
               <button aria-label={isLiked ? "Unlike job" : "Like job"} aria-pressed={isLiked} onClick={() => toggleLike(job.id)} className="rounded-full p-2 hover:bg-neutral-100"><Heart className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} /></button>
-              <ApplyButton job={job} guided />
+              <ApplyButton job={job} guided withCustomize />
             </div>
           </div>
 

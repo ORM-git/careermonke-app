@@ -9,7 +9,9 @@ import { ApplyButton, CardMenu } from "./jobs/job-actions";
 import type { Job } from "@/mocks/jobs";
 
 export function JobCard({ job, status, onAsk, extra }: { job: Job; status?: string; onAsk?: (job: Job) => void; extra?: React.ReactNode }) {
-  const { liked, toggleLike, hide } = useApp();
+  const { liked, toggleLike, hide, customized } = useApp();
+  // After the resume demo the card shows the sample "after" score for this visit only.
+  const match = customized[job.id] ? Math.max(job.match, Math.round(customized[job.id] * 10)) : job.match;
   const [expanded, setExpanded] = useState(false);
   const isLiked = liked.includes(job.id);
   const facts: Array<[typeof MapPin, string | undefined]> = [
@@ -43,6 +45,7 @@ export function JobCard({ job, status, onAsk, extra }: { job: Job; status?: stri
                   <span className="tag bg-neutral-100 text-neutral-700">{job.posted}</span>
                   {job.badges.map((b) => <span key={b} className="tag bg-neutral-100 text-neutral-700">{b}</span>)}
                   {status && <span className="tag">{status}</span>}
+                  {customized[job.id] && <span className="tag bg-accent-tint text-accent">Resume customized (demo) · {customized[job.id].toFixed(1)}/10</span>}
                 </div>
                 <Link href={`/jobs/${job.id}`} className="mt-1 block truncate text-xl font-semibold hover:underline">{job.title}</Link>
                 <p className="truncate text-[13px] text-neutral-700">{job.company} <span className="text-neutral-400">/ {job.industry}</span></p>
@@ -54,7 +57,7 @@ export function JobCard({ job, status, onAsk, extra }: { job: Job; status?: stri
             </div>
           </>
         )}
-        <div className="mt-4 flex items-center gap-2 border-t border-line pt-3">
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
           <span className="mr-auto text-xs text-neutral-400">{job.applicants}</span>
           {extra}
           <button aria-label="Not interested" title="Not interested" onClick={() => hide(job.id)} className="rounded-full border border-line p-2 hover:bg-neutral-50"><Ban className="h-4 w-4" /></button>
@@ -64,18 +67,18 @@ export function JobCard({ job, status, onAsk, extra }: { job: Job; status?: stri
           {onAsk
             ? <button onClick={() => onAsk(job)} data-tour="ask" className="pill-ghost hidden sm:inline-flex"><Sparkles className="h-4 w-4" />ASK MONKE</button>
             : <Link href={`/jobs/${job.id}`} data-tour="ask" className="pill-ghost hidden sm:inline-flex"><Sparkles className="h-4 w-4" />ASK MONKE</Link>}
-          <ApplyButton job={job} />
+          <ApplyButton job={job} withCustomize />
         </div>
       </div>
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
         data-tour="match"
-        aria-label={`${job.match}% match, ${expanded ? "hide" : "show"} breakdown`}
+        aria-label={`${match}% match, ${expanded ? "hide" : "show"} breakdown`}
         className="hidden w-40 shrink-0 flex-col items-center justify-center gap-2 bg-gradient-to-b from-neutral-900 to-slate-700 text-white sm:flex"
       >
-        <MatchRing value={job.match} dark />
-        <span className="font-semibold">{matchLabel(job.match)}</span>
+        <MatchRing value={match} dark />
+        <span className="font-semibold">{matchLabel(match)}</span>
         <span className="w-28 border-t border-white/15 pt-2 text-[11px] text-white/80">{job.h1b ? "✓ H1B sponsor likely" : job.mode === "Remote" ? "• Remote friendly" : "No H1B sponsorship"}</span>
       </button>
     </article>

@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SimulatedApplication } from "./simulated-application";
+import { CustomizePrompt, ResumeCompare } from "./resume-customize";
+import { LOW_SCORE, resumeFit } from "@/mocks/resume-fit";
 import { useGuideAction } from "../guide";
-import { ArrowUpRight, BriefcaseBusiness, CircleCheck, CircleX, Flag, MoreHorizontal, Share2 } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, FilePen, CircleCheck, CircleX, Flag, MoreHorizontal, Share2 } from "lucide-react";
 import { Modal } from "../ui";
 import { toast } from "../toast";
 import { useApp } from "../app-state";
@@ -18,20 +20,27 @@ export const shareJob = async (id: string) => {
 /**
  * Opens a local simulated employer form (nothing leaves the demo). Returning from it always asks
  * "Did you apply?" once for that attempt. Only an explicit "Yes" records the application.
+ * A low-score sample job first offers the resume-customize demo, unless already customized or dismissed for this visit.
+ * `withCustomize` adds a "Customize Resume" button that opens the same flow.
  */
-export function ApplyButton({ job, className = "pill-accent", guided = false }: { job: Job; className?: string; guided?: boolean }) {
-  const { apply, applied } = useApp();
-  const [stage, setStage] = useState<"idle" | "form" | "ask">("idle");
+export function ApplyButton({ job, className = "pill-accent", guided = false, withCustomize = false }: { job: Job; className?: string; guided?: boolean; withCustomize?: boolean }) {
+  const { apply, applied, customized, noRemind } = useApp();
+  const [stage, setStage] = useState<"idle" | "prompt" | "flow" | "form" | "ask">("idle");
   const ask = stage === "ask";
   const done = applied.some((a) => a.id === job.id);
   const setAsk = (v: boolean) => setStage(v ? "ask" : "idle");
   useGuideAction(guided ? "apply" : "-", () => setStage("form"));
 
+  const start = () => setStage(resumeFit(job).score < LOW_SCORE && !noRemind && !customized[job.id] ? "prompt" : "form");
+
   return (
     <>
-      <button onClick={() => setStage("form")} title="Opens a simulated application inside this demo" className={done ? "pill-ghost" : className}>
+      {withCustomize && <button onClick={() => setStage("flow")} className="pill-ghost"><FilePen className="h-4 w-4" />Customize Resume</button>}
+      <button onClick={start} title="Opens a simulated application inside this demo" className={done ? "pill-ghost" : className}>
         {done ? "APPLIED" : <>APPLY <ArrowUpRight className="h-4 w-4" /></>}
       </button>
+      {stage === "prompt" && <CustomizePrompt job={job} onFix={() => setStage("flow")} onSkip={() => setStage("form")} onClose={() => setStage("idle")} />}
+      {stage === "flow" && <ResumeCompare job={job} onClose={() => setStage("idle")} onApply={() => setStage("form")} />}
       {stage === "form" && <SimulatedApplication job={job} onReturn={() => setStage("ask")} />}
       <Modal open={ask} onClose={() => setAsk(false)} title="Did you apply?">
         <div className="flex flex-col items-center gap-3 p-8 text-center">

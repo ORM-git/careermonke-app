@@ -13,6 +13,9 @@ type State = {
   hide: (id: string) => void; setStatus: (id: string, s: AppStatus) => void;
   settingsOpen: boolean; setSettingsOpen: (v: boolean) => void;
   messagesOpen: boolean; setMessagesOpen: (v: boolean) => void;
+  // Resume-customize demo: React state only, so a reload or Restart Demo resets it.
+  customized: Record<string, number>; markCustomized: (id: string, score: number) => void;
+  credits: number; spendCredit: () => void; noRemind: boolean; setNoRemind: (v: boolean) => void;
 };
 
 const Ctx = createContext<State | null>(null);
@@ -30,6 +33,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
+  const [customized, setCustomized] = useState<Record<string, number>>({});
+  const [credits, setCredits] = useState(2);
+  const [noRemind, setNoRemind] = useState(false);
 
   useEffect(() => {
     try { const s = demoStore.getItem(KEY); if (s) setData({ hidden: [], ...JSON.parse(s) }); } catch { /* corrupt mock state: start fresh */ }
@@ -49,6 +55,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setData((d) => ({ ...d, external: [{ url, title, date: today() }, ...d.external] }));
     },
     settingsOpen, setSettingsOpen, messagesOpen, setMessagesOpen,
+    customized, markCustomized: (id, score) => setCustomized((c) => ({ ...c, [id]: score })),
+    credits, spendCredit: () => setCredits((c) => Math.max(0, c - 1)), noRemind, setNoRemind,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
