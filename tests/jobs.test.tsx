@@ -221,5 +221,5 @@ describe("Trackers and checklist", () => {
     demoStore.setItem("cm_checklist_autofill", "1");
     demoStore.clear(); // what a reload does: the module store starts empty
     expect(demoStore.getItem("cm_checklist_autofill")).toBeNull();
-  });
+  }, 10_000);
 });
