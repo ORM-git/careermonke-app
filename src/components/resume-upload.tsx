@@ -14,15 +14,15 @@ export function UploadModal({ open, onClose, onFile }: { open: boolean; onClose:
   const close = () => { setErr(""); onClose(); };
   return (
     <Modal open={open} onClose={close} title="Upload Resume to Get Started">
-      <div className="flex flex-col items-center gap-6 p-8 text-center">
-        <h2 className="text-2xl font-bold">Upload Resume to Get Started</h2>
+      <div className="flex flex-col items-center gap-6 p-5 text-center sm:p-8">
+        <h2 className="text-xl font-bold sm:text-2xl">Upload Resume to Get Started</h2>
         <span className="relative"><FileText className="h-20 w-20 stroke-[1.1]" aria-hidden="true" /><Upload className="absolute -bottom-1 -right-1 h-7 w-7 rounded-md bg-ink p-1 text-white" aria-hidden="true" /></span>
         <p className="text-xs text-neutral-500">Files should be in PDF or Word format and must not exceed 10MB in size.</p>
         {err && <p role="alert" className="-mt-3 text-sm text-red-500">{err}</p>}
         <label className="sr-only" htmlFor="resume-file">Resume file</label>
         <input id="resume-file" ref={input} type="file" accept=".pdf,.doc,.docx" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; const m = resumeFileError(f); if (m) setErr(m); else { setErr(""); onFile(f); } }} />
-        <button onClick={() => input.current?.click()} className="pill-dark w-60 py-3 text-base">Upload</button>
+        <button onClick={() => input.current?.click()} className="pill-dark w-full max-w-60 py-3 text-base">Upload</button>
       </div>
     </Modal>
   );

@@ -64,14 +64,14 @@ export default function MatchingPage() {
   }, [router]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center bg-white px-4 pt-16">
+    <main className="flex min-h-[100dvh] flex-col items-center bg-white px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))] md:min-h-screen md:pb-0 md:pt-16">
       <FileText className="h-16 w-16 stroke-[1.25]" aria-hidden="true" />
       <div className="mt-6 h-1 w-full max-w-md rounded-full bg-neutral-100" role="progressbar" aria-valuenow={Math.round(p * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Matching progress">
         <div className="h-1 rounded-full bg-accent" style={{ width: `${p * 100}%` }} />
       </div>
       <p key={line} aria-live="polite" className="animate-pop mt-8 text-center text-lg">{statusSentences[line]}</p>
 
-      <div className="mt-24 flex w-full max-w-2xl flex-col items-center gap-8 rounded-3xl bg-accent-tint px-6 py-10 sm:flex-row sm:justify-around">
+      <div className="mt-10 flex w-full max-w-2xl flex-col items-center gap-6 rounded-3xl bg-accent-tint px-4 py-8 sm:flex-row sm:justify-around sm:gap-8 sm:px-6 sm:py-10 md:mt-24">
         <div key={slide} className="animate-pop flex flex-col items-center gap-3 text-center">
           <span className="rounded-full bg-ink px-3 py-1 text-sm text-white">Feature Highlights</span>
           <p className="max-w-[240px] text-xl">{featureHighlights[slide]}</p>
