@@ -47,7 +47,8 @@ export function CompanyBrowser({ company }: { company: Company }) {
 
   return (
     <>
-      <PageHeader title="INTERVIEW" right={<span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-semibold text-accent">Pro feature · unlocked in this demo</span>}>
+      {/* Phones: the header pill would push the page 40px wide; the in-page LimitedPill keeps the same notice visible. */}
+      <PageHeader title="INTERVIEW" right={<span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-semibold text-accent max-sm:hidden">Pro feature · unlocked in this demo</span>}>
         <Link href="/interview" className="text-sm">Browse Companies</Link>
       </PageHeader>
       <div className="mx-auto max-w-7xl p-4 md:p-6">

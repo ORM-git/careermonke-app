@@ -108,7 +108,7 @@ export function Tour({ step, onNext, onExit, onTry, steps = tourSteps }: { step:
         <div className="pointer-events-none absolute rounded-xl transition-all duration-200" style={{ top: rect.top - pad, left: rect.left - pad, width: rect.width + pad * 2, height: rect.height + pad * 2, boxShadow: "0 0 0 9999px rgba(0,0,0,.55)" }} />
       ) : <div className="absolute inset-0 bg-black/55" />}
       {mobile || !rect ? (
-        <div key={step} className="animate-pop absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-6 shadow-2xl">{card}</div>
+        <div key={step} className="animate-pop absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl">{card}</div>
       ) : (
         <div key={step} className="animate-pop absolute rounded-2xl bg-white p-5 shadow-2xl" style={{ width: tipW, left: tipLeft, ...(below ? { top: rect.top + rect.height + pad + 14 } : { bottom: window.innerHeight - rect.top + pad + 14 }) }}>
           <span className={`absolute h-4 w-4 rotate-45 bg-white ${below ? "-top-2" : "-bottom-2"}`} style={{ left: arrowLeft }} aria-hidden="true" />

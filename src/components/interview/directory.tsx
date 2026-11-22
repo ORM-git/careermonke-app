@@ -39,9 +39,9 @@ export function InterviewDirectory() {
       <div className="mx-auto max-w-6xl space-y-8 p-4 md:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><h2 className="text-2xl font-semibold">Real Interview Questions</h2><p className="text-sm text-neutral-500">Technical and behavioral questions reported by candidates. Counts as of {snapshot.date}.</p></div>
-          <div className="flex gap-3">
+          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:gap-3">
             {([[snapshot.companies, "Companies"], [snapshot.questions.toLocaleString("en-IN"), "Total Questions"], [`+${snapshot.last30}`, "Last 30 Days"]] as const).map(([n, l]) => (
-              <div key={l} className="card px-5 py-3 text-center"><p className="text-xl font-semibold">{n}</p><p className="text-xs text-neutral-500">{l}</p></div>
+              <div key={l} className="card min-w-0 px-2 py-3 text-center sm:px-5"><p className="text-xl font-semibold">{n}</p><p className="text-xs text-neutral-500">{l}</p></div>
             ))}
           </div>
         </div>
