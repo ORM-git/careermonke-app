@@ -107,6 +107,8 @@ export function JobsView() {
     setReady(true);
   }, []);
   useEffect(() => { if (ready) writeUrl(tab, sort, q); }, [tab, sort, q, ready]);
+  // Keep the selected tab visible in the swipeable phone strip (no-op when it already fits).
+  useEffect(() => { document.querySelector('[role="tab"][aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" }); }, [tab]);
 
   const active = saved.find((x) => x.id === activeId) ?? saved[0];
   const filter = active?.filter ?? draftFilter;
@@ -147,21 +149,32 @@ export function JobsView() {
   return (
     <>
       <PageHeader title="JOBS">
-        <Tabs tabs={TABS} value={tab} onChange={setTab} counts={{ Liked: liked.length, Applied: applied.length, External: external.length }} />
+        {/* Phones: the same tablist is pinned as a full-width, swipeable strip under the header (one element, so
+            tab state and tests are shared); from md it sits inline in the header as before. */}
+        <div className="min-w-0 max-md:fixed max-md:inset-x-0 max-md:top-16 max-md:z-20 max-md:border-b max-md:border-line max-md:bg-white max-md:px-4 max-md:pt-2.5">
+          <Tabs tabs={TABS} value={tab} onChange={setTab} counts={{ Liked: liked.length, Applied: applied.length, External: external.length }} />
+        </div>
         <label className="ml-auto hidden w-64 items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 text-sm xl:flex">
           <Search className="h-4 w-4 text-neutral-500" /><span className="sr-only">Search jobs</span>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title or company" className="w-full bg-transparent outline-none" />
         </label>
       </PageHeader>
 
-      <div className="grid gap-6 p-4 md:p-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-24 pt-14 md:p-6 lg:grid-cols-[1fr_320px]">
         <main className="min-w-0 space-y-4">
           {tab === "Recommended" && (
             <>
-              <div className="flex flex-col-reverse items-end gap-2 sm:flex-row sm:items-start">
-                <div className="w-full sm:flex-1"><QuickFilters f={filter} apply={patch} onAllFilters={() => setEditor({})} onHidden={() => patch({ hiddenJobs: !filter.hiddenJobs })} /></div>
-                <span title="Jobs are matched to your saved filter and profile" className="mt-2 hidden text-neutral-500 sm:block"><CircleHelp className="h-5 w-5" /></span>
-                <SortMenu value={sort} onChange={setSort} />
+              {/* gap (not the parent's space-y) so the phone-only search adds no space when hidden from md */}
+              <div className="flex flex-col gap-3">
+                <label className="flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-line md:hidden">
+                  <Search className="h-4 w-4 shrink-0 text-neutral-500" /><span className="sr-only">Search jobs</span>
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title or company" className="w-full min-w-0 bg-transparent text-base outline-none md:text-sm" />
+                </label>
+                <div className="flex flex-col-reverse items-end gap-2 sm:flex-row sm:items-start">
+                  <div className="w-full sm:flex-1"><QuickFilters f={filter} apply={patch} onAllFilters={() => setEditor({})} onHidden={() => patch({ hiddenJobs: !filter.hiddenJobs })} /></div>
+                  <span title="Jobs are matched to your saved filter and profile" className="mt-2 hidden text-neutral-500 sm:block"><CircleHelp className="h-5 w-5" /></span>
+                  <SortMenu value={sort} onChange={setSort} />
+                </div>
               </div>
               <p className="sr-only" aria-live="polite">{loading ? "Loading jobs" : `${feed.length} jobs`}</p>
               {loading ? <div data-testid="feed-loading" className="space-y-4">{[0, 1, 2].map((i) => <JobCardSkeleton key={i} />)}</div>
@@ -213,7 +226,7 @@ export function JobsView() {
             <>
               <form className="flex gap-3" onSubmit={addJob} noValidate>
                 <label className="sr-only" htmlFor="ext-url">Job URL</label>
-                <input id="ext-url" value={url} onChange={(e) => { setUrl(e.target.value); setUrlErr(""); }} aria-invalid={!!urlErr} aria-describedby={urlErr ? "ext-err" : undefined} placeholder="Paste a job URL here to add this job" className="input bg-white" />
+                <input id="ext-url" value={url} onChange={(e) => { setUrl(e.target.value); setUrlErr(""); }} aria-invalid={!!urlErr} aria-describedby={urlErr ? "ext-err" : undefined} placeholder="Paste a job URL here to add this job" className="input min-w-0 bg-white text-base md:text-sm" />
                 <button className="pill-accent shrink-0 rounded-lg"><Plus className="h-4 w-4" />Add Job</button>
               </form>
               {urlErr && <p id="ext-err" role="alert" className="text-sm text-red-500">{urlErr}</p>}

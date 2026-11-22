@@ -68,7 +68,7 @@ function Connections({ job }: { job: Job }) {
         <span className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-white" title="Each email lookup uses 1 credit. Credits reset daily.">{CREDITS_TODAY} email credits available today <CircleHelp className="h-3.5 w-3.5" /></span>
       </div>
       <p className="text-[15px]">Find people at the company who could share insights or refer you. <b className="underline">Reaching out by email tends to get more replies than LinkedIn messages.</b></p>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-3">
         <div className="relative rounded-xl border border-blue-200 bg-accent-tint p-3">
           <p className="text-sm font-semibold text-accent">Beyond Your Network</p>
           <div className="mt-3 flex items-center justify-between"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">P</span><button onClick={() => setView(true)} className="rounded-full border border-ink bg-white px-4 py-1 text-sm font-medium">View</button></div>
@@ -128,7 +128,7 @@ function CompanySection({ job }: { job: Job }) {
   return (
     <section className="space-y-4">
       <H icon={Building2} id="jd-company">Company</H>
-      <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-[2fr_1fr]">
         <div className={box}>
           <div className="flex items-start justify-between gap-3">
             <div><p className="text-xl font-semibold">{job.company}</p>
@@ -145,13 +145,13 @@ function CompanySection({ job }: { job: Job }) {
         </ul>
       </div>
       <p className="pt-2 text-lg font-semibold">Funding</p>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-3">
         <div className={box}><p className="font-semibold">Current Stage</p><p>{job.funding.stage}</p><p className="mt-2 font-semibold">Total Funding</p><p>{job.funding.total}</p></div>
         <div className={box}><p className="font-semibold">Key Investors</p>{job.funding.investors.map((i) => <p key={i}>{i}</p>)}</div>
         <div className={`${box} space-y-2`}>{job.funding.events.map((e) => <p key={e.date}><b className="block">{e.date}</b>{e.label}</p>)}</div>
       </div>
       <p className="pt-2 text-lg font-semibold">Leadership Team</p>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-3">
         {job.leaders.map((l) => (
           <div key={l.name} className={box}>
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-300 text-sm font-semibold">{l.name.split(" ").map((w) => w[0]).join("")}</span>
@@ -160,7 +160,7 @@ function CompanySection({ job }: { job: Job }) {
         ))}
       </div>
       <p className="pt-2 text-lg font-semibold">Recent News</p>
-      <div className="grid gap-3 sm:grid-cols-3">{job.news.map((n) => <div key={n.title} className={box}><p className="font-semibold">{n.source}</p><p className="line-clamp-2 text-[15px]">{n.title}</p><p className="mt-2 text-xs text-neutral-500">{n.date}</p></div>)}</div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-3">{job.news.map((n) => <div key={n.title} className={box}><p className="font-semibold">{n.source}</p><p className="line-clamp-2 text-[15px]">{n.title}</p><p className="mt-2 text-xs text-neutral-500">{n.date}</p></div>)}</div>
       <p className="text-xs italic text-neutral-500">Company details are sample data for this demo.</p>
     </section>
   );
@@ -205,7 +205,7 @@ export function JobDetail({ job }: { job: Job }) {
   return (
     <>
       <PageHeader title="JOBS"><Link href="/jobs" className="border-b-2 border-ink text-[15px] font-semibold">Recommended</Link></PageHeader>
-      <div className="grid gap-6 p-4 md:p-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid gap-6 px-4 pb-28 pt-4 md:p-6 lg:grid-cols-[1fr_300px]">
         <main className="min-w-0">
           <div className="sticky top-16 z-10 -mx-1 mb-3 flex items-center gap-2 bg-neutral-50 px-1 py-2">
             <Link href="/jobs" aria-label="Back to jobs" className="rounded-lg bg-white p-2 shadow-sm hover:bg-neutral-100"><X className="h-5 w-5" /></Link>
@@ -220,20 +220,21 @@ export function JobDetail({ job }: { job: Job }) {
           </div>
 
           <div ref={top} className="card scroll-mt-40">
-            <div className="sticky top-[124px] z-[5] flex items-center gap-6 rounded-t-2xl border-b border-line bg-white px-6 pt-4">
+            <div className="sticky top-[124px] z-[5] flex items-center gap-5 rounded-t-2xl border-b border-line bg-white px-4 pt-4 sm:gap-6 sm:px-6">
               {(["Overview", "Company"] as const).map((t) => <button key={t} onClick={() => go(t)} aria-current={tab === t || undefined} className={`border-b-2 pb-3 text-[17px] ${tab === t ? "border-ink font-semibold" : "border-transparent text-neutral-400"}`}>{t}</button>)}
-              <div className="ml-auto hidden gap-4 pb-3 text-xs sm:flex">
-                <button onClick={() => shareJob(job.id)} className="flex items-center gap-1"><Share2 className="h-4 w-4" />Share</button>
-                <button onClick={() => setReport(true)} className="flex items-center gap-1"><Flag className="h-4 w-4" />Report Issue</button>
-                <span title="Sample job: there is no real posting" className="flex items-center gap-1 text-neutral-400"><FileText className="h-4 w-4" />Sample posting</span>
+              {/* Phones keep Share / Report reachable as icon buttons; text labels stay for screen readers. */}
+              <div className="ml-auto flex gap-1 pb-2 text-xs sm:gap-4 sm:pb-3">
+                <button onClick={() => shareJob(job.id)} className="flex items-center gap-1 max-sm:h-10 max-sm:w-10 max-sm:justify-center"><Share2 className="h-4 w-4" /><span className="max-sm:sr-only">Share</span></button>
+                <button onClick={() => setReport(true)} className="flex items-center gap-1 max-sm:h-10 max-sm:w-10 max-sm:justify-center"><Flag className="h-4 w-4" /><span className="max-sm:sr-only">Report Issue</span></button>
+                <span title="Sample job: there is no real posting" className="flex items-center gap-1 text-neutral-400 max-sm:hidden"><FileText className="h-4 w-4" />Sample posting</span>
               </div>
             </div>
 
-            <div className="space-y-10 p-6">
+            <div className="space-y-8 p-4 sm:space-y-10 sm:p-6">
               <section className="flex flex-wrap justify-between gap-6 border-b border-line pb-8">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3"><CompanyLogo initials={job.initials} color={job.color} size={44} /><p className="text-[15px]"><b className="font-medium">{job.company}</b> · {job.posted}</p></div>
-                  <h1 className="text-2xl font-semibold">{job.title}</h1>
+                  <h1 className="text-xl font-semibold sm:text-2xl">{job.title}</h1>
                   <div className="grid grid-cols-1 gap-x-10 gap-y-1.5 text-sm sm:grid-cols-2">{facts.map(([Icon, t], i) => t && <span key={i} className="flex items-center gap-2"><Icon className="h-4 w-4 text-neutral-500" />{t}</span>)}</div>
                 </div>
                 <div className="w-full self-start rounded-2xl bg-gradient-to-br from-accent-tint to-sky-50 p-1 ring-1 ring-blue-200 sm:w-64" aria-label={`Match score ${job.match}%`}>
